@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/jpg" href="favicon.jpg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Инструмент поиска для ИД</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Дополнительные служебные классы, заменяющие инлайн-стили -->
+    <style>
+        .flex-row { display: flex; gap: 10px; margin-bottom: 15px; width: 100%; }
+        .flex-1 { flex: 1; }
+        .flex-2 { flex: 2; }
+        .w-100 { width: 100%; }
+        .single-line { height: 42px !important; margin-bottom: 0; padding: 10px 12px; }
+        .small-label { font-size: 11px !important; color: var(--text-muted) !important; text-transform: uppercase; margin-bottom: 6px; }
+        .text-center { text-align: center; }
+        .mb-20 { margin-bottom: 20px; }
+        .mt-12 { margin-top: 12px; }
+        .status-message { margin-top: 15px; font-size: 13px; text-align: center; font-weight: 500; }
+        .auth-card { max-width: 400px; margin: auto; }
+        .hide { display: none; }
+    </style>
+</head>
+<body>
+
+<!-- ЭКРАН АВТОРИЗАЦИИ И РЕГИСТРАЦИИ -->
+<div id="auth-overlay" class="modal-overlay open" style="z-index: 9999; background: var(--bg-main);">
+    <div class="app-card auth-card">
+        
+        <div class="top-navbar mb-20">
+            <button id="auth-tab-login" onclick="toggleAuthTab('login')" class="nav-btn active">🔑 Вход</button>
+            <button id="auth-tab-register" onclick="toggleAuthTab('register')" class="nav-btn">📝 Запрос доступа</button>
+        </div>
+
+        <h2 id="auth-title" class="app-title">Авторизация оператора</h2>
+
+        <div id="auth-form">
+            <div id="register-fields" class="hide">
+                <div class="input-group">
+                    <label class="input-label">Фамилия и Имя</label>
+                    <input type="text" id="auth-fullname" class="input-textarea single-line" placeholder="Например: Камышин Иван">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">ID оператора</label>
+                    <input type="text" id="auth-operatorid" class="input-textarea single-line" placeholder="Например: 543">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Рабочий Email</label>
+                <input type="email" id="auth-email" class="input-textarea single-line" placeholder="operator@company.ru">
+            </div>
+            <div class="input-group mb-20">
+                <label class="input-label">Пароль</label>
+                <input type="password" id="auth-password" class="input-textarea single-line" placeholder="••••••••">
+            </div>
+
+            <button id="auth-submit-btn" onclick="handleAuthSubmit()" class="btn-main btn-primary w-100">Войти в систему</button>
+            <div id="auth-status-message" class="status-message"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ГЛАВНАЯ КАРТОЧКА ПРИЛОЖЕНИЯ -->
+<div class="app-card">
+    <div class="status-bar-top">
+        <span class="status-active">🟢 База городов: активна...</span>
+        <span class="status-refresh-btn" onclick="updateDatabase()">🔄 Обновить базу сейчас</span>
+    </div>
+    
+    <h1 class="app-title" id="app-welcome-title">🚌 Добро пожаловать!</h1>
+    
+    <div class="top-navbar">
+        <button id="btn-search-city" onclick="setSearchMode('city')" class="nav-btn active">🏙️ Поиск по городам</button>
+        <button id="btn-search-code" onclick="setSearchMode('code')" class="nav-btn">🪪 Поиск по коду магазина</button>
+        <button id="theme-toggle-btn" onclick="toggleTheme()" class="nav-btn" style="flex: 0 0 auto; width: 44px; padding: 10px 0; font-size: 16px;">🌙</button>
+        <button onclick="handleLogout()" class="btn-logout" title="Выйти из системы">🚪 Выйти</button>
+    </div>
+
+    <div class="order-management-panel">
+        <button onclick="buildOrderProcessingModal()" class="btn-order-action">⚙️ Обработать заказ</button>
+        <button onclick="openFloatingModal('modal-waiting-list')" class="btn-order-action">⏳ Лист ожидания</button>
+        <button onclick="openFloatingModal('modal-send-form')" class="btn-order-action">✉️ Форма отправки</button>
+    </div>
+
+    <!-- Контейнер списков товаров -->
+    <div id="lists-container">
+        <!-- Блок 1 -->
+        <div class="input-group product-list-wrapper" id="group-list-1">
+            <div class="flex-header input-group-header">
+                <label class="input-label">Товар 1 (Список строк)</label>
+                <button class="mac-clear-btn" onclick="clearSpecificProductList(1)" title="Очистить список">×</button>
+            </div>
+            <textarea id="list-1" class="input-textarea" placeholder="Вставьте первый список строк..."></textarea>
+            <div class="flex-row mt-12" style="align-items: center; justify-content: flex-start; margin-bottom: 0;">
+                <span class="small-label" style="margin-bottom:0;">🔢 Нужно штук:</span>
+                <input type="number" id="stock-filter-1" class="input-textarea single-line" style="width: 100px; padding: 4px 10px;" placeholder=">= 1" min="1">
+            </div>
+        </div>
+
+        <!-- Блок 2 -->
+        <div class="input-group product-list-wrapper" id="group-list-2">
+            <div class="flex-header input-group-header">
+                <label class="input-label">Товар 2 (Список строк)</label>
+                <button class="mac-clear-btn" onclick="clearSpecificProductList(2)" title="Очистить список">×</button>
+            </div>
+            <textarea id="list-2" class="input-textarea" placeholder="Вставьте второй список строк..."></textarea>
+            <div class="flex-row mt-12" style="align-items: center; justify-content: flex-start; margin-bottom: 0;">
+                <span class="small-label" style="margin-bottom:0;">🔢 Нужно штук:</span>
+                <input type="number" id="stock-filter-2" class="input-textarea single-line" style="width: 100px; padding: 4px 10px;" placeholder=">= 1" min="1">
+            </div>
+        </div>
+    </div>
+
+    <button onclick="addNewList()" class="btn-add">➕ Добавить товар в корзину</button>
+
+    <div class="actions-panel">
+        <button onclick="startSearch()" class="btn-main btn-primary">Найти совпадения</button>
+        <button onclick="resetAllForm()" class="btn-main btn-secondary">Сбросить всё</button>
+    </div>
+
+    <!-- БЛОК РЕЗУЛЬТАТОВ -->
+    <div id="results-section" class="hide">
+        <div class="results-card">
+            <h3 class="input-label results-title">📊 Результаты анализа и пересечений:</h3>
+            <div id="results-rows-container"></div>
+
+            <div class="geo-block">
+                <label class="input-label">📍 Найти ближайший из найденных</label>
+                <div class="geo-input-wrapper">
+                    <input type="text" id="geo-search-input" class="input-textarea single-line" placeholder="Введите город, село, деревню клиента...">
+                    <button onclick="findNearestStore()" class="btn-orange">Найти ближайший</button>
+                </div>
+                <div id="geo-result-output" class="status-message"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🪐 МОДАЛКА 1: ОБРАБОТКА ЗАКАЗА -->
+<div id="modal-process-order" class="floating-modal floating-modal-wide hide">
+    <div class="floating-modal-header" onmousedown="initModalDrag(event, 'modal-process-order')">
+        <span>⚙️ Обработать заказ</span>
+        <div class="flex-row" style="width: auto; margin-bottom: 0;">
+            <button class="modal-control-btn modal-btn-refresh" onclick="refreshProductContainerOnly()" title="Синхронизировать">🔄</button>
+            <button class="modal-control-btn modal-btn-minimize" onclick="minimizeOrderModal()" title="Свернуть">🗕</button>
+            <button class="modal-control-btn modal-btn-close" onclick="closeFloatingModal('modal-process-order')" title="Закрыть">🗙</button>
+        </div>
+    </div>
+    <div class="floating-modal-body">
+        <div class="modal-columns-container">
+            <!-- Левая колонка -->
+            <div class="modal-column-left">
+              <form autocomplete="new-password" onsubmit="event.preventDefault();">
+                <div class="input-group">
+                    <label class="input-label small-label">👤 Имя клиента</label>
+                    <input type="text" id="script-client-name" class="input-textarea single-line" placeholder="Например: Ольга" oninput="updateLiveScriptText()" autocomplete="off">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label small-label">📦 Способ доставки</label>
+                    <div class="top-navbar" id="delivery-type-toggle" style="margin-bottom: 0;">
+                        <button id="deliv-tab-pvz" onclick="setDeliveryMode('pvz')" class="nav-btn active">🏢 В пункт СДЭК</button>
+                        <button id="deliv-tab-courier" onclick="setDeliveryMode('courier')" class="nav-btn">🚗 Курьером</button>
+                    </div>
+                </div>
+
+                <div class="input-group" id="script-address-group">
+                    <label class="input-label small-label" id="script-address-label">📍 Адрес или ПВЗ СДЭК</label>
+                    <input type="text" id="script-delivery-address" class="input-textarea single-line" placeholder="Город, улица..." oninput="updateLiveScriptText()" autocomplete="off">
+                </div>
+
+                <div class="flex-row">
+                    <div class="flex-2">
+                        <label class="input-label small-label">👤 ФИО Получателя</label>
+                        <input type="text" id="script-rec-fio" class="input-textarea single-line" placeholder="Иванов И.И." oninput="updateLiveScriptText()" autocomplete="off">
+                    </div>
+                    <div class="flex-1">
+                        <label class="input-label small-label">📞 Телефон</label>
+                        <input type="text" id="script-rec-phone" class="input-textarea single-line" placeholder="+7 (999)..." oninput="updateLiveScriptText()" autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="flex-row">
+                    <div class="flex-1">
+                        <label class="input-label small-label">💰 Стоимость</label>
+                        <input type="number" id="script-deliv-price" class="input-textarea single-line" placeholder="0" oninput="updateLiveScriptText()" autocomplete="off">
+                    </div>
+                    <div class="flex-1">
+                        <label class="input-label small-label">⏱️ Срок (Дней)</label>
+                        <input type="text" id="script-deliv-days" class="input-textarea single-line" placeholder="2-3 дня" oninput="updateLiveScriptText()" autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="flex-row">
+                    <div class="flex-1 field-active" id="group-script-date">
+                        <label class="input-label small-label">📅 Дата оформления</label>
+                        <input type="datetime-local" id="script-deliv-date" class="input-textarea single-line w-100" oninput="updateLiveScriptText()">
+                    </div>
+                    <div class="flex-1 field-muted" id="group-script-order-number">
+                        <label class="input-label small-label">🔢 Номер заказа</label>
+                        <input type="text" id="script-order-number" class="input-textarea single-line w-100" placeholder="45892" oninput="updateLiveScriptText()">
+                    </div>
+                </div>
+
+                <div class="input-group hide" id="group-script-manual-store">
+                    <label class="input-label small-label" style="color: #ec4899 !important;">🏪 Город и магазин (Вручную)</label>
+                    <input type="text" id="script-manual-store" class="input-textarea single-line" placeholder="Москва, ТЦ..." oninput="updateLiveScriptText()">
+                </div>
+
+                <label class="input-label small-label" style="color: var(--primary) !important; border-top: 1px dashed var(--border-color); padding-top: 15px;">📦 Список товаров</label>
+                <div id="script-products-container"></div>
+
+                <button type="button" onclick="addProductRowToModal()" class="btn-order-action btn-add-modal-product w-100 mt-12 mb-20" style="color: var(--primary);">
+                    ➕ Добавить товар в заказ
+                </button>
+              </form>
+            </div>
+
+            <div class="modal-column-divider"></div>
+
+            <!-- Правая колонка -->
+            <div class="modal-column-right">
+                <div class="flex-row" style="justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label class="input-label small-label" style="color: #4338ca !important; margin: 0;">🗣️ Готовый скрипт</label>
+                    <label class="script-toggle">
+                        <input type="checkbox" id="script-mode-toggle" onchange="handleScriptToggleChange()">
+                        <span class="script-toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div id="script-live-output"></div>
+
+                <div class="flex-row" style="margin-bottom: 0;">
+                    <button type="button" onclick="openQuickWaitingListModal()" class="btn-main" style="background: #f59e0b; color: white;">⏳ В лист ожидания</button>
+                    <button type="button" onclick="copyGeneratedScript(this)" class="btn-main btn-primary">📋 Скопировать в таблицу</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🪐 МОДАЛКА 2: ФОРМА ОТПРАВКИ -->
+<div id="modal-send-form" class="floating-modal shablon-modal-window hide" style="width: 440px;">
+    <div class="floating-modal-header" onmousedown="initModalDrag(event, 'modal-send-form')">
+        <span>✉️ Шаблоны</span>
+        <button type="button" class="modal-close-right" onclick="closeFloatingModal('modal-send-form')"></button>
+    </div>
+    <div class="floating-modal-body">
+        <div id="shablon-list-container" class="shablon-items-wrapper">
+            <div class="text-center small-label mt-12">⏳ Загрузка шаблонов...</div>
+        </div>
+    </div>
+</div>
+
+<!-- 🏪 КАРТОЧКА МАГАЗИНА (ПРОСТАЯ МОДАЛКА) -->
+<div id="store-modal" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="modal-close" onclick="closeModal(null)">×</button>
+        <h4 id="modal-store-title" class="input-label">🏪 Карточка магазина</h4>
+        <div class="mb-20">
+            <span class="small-label">ТОЧНЫЙ АДРЕС ОТГРУЗКИ</span>
+            <div class="modal-row">
+                <span id="modal-address-text">Загрузка...</span>
+                <button onclick="copyText('modal-address-text', this)" class="btn-copy">📋</button>
+            </div>
+        </div>
+        <div class="mb-20">
+            <span class="small-label">УНИКАЛЬНЫЙ КОД AXAPTA</span>
+            <div class="modal-row">
+                <span id="modal-axapta-text">Загрузка...</span>
+                <button onclick="copyText('modal-axapta-text', this)" class="btn-copy">📋</button>
+            </div>
+        </div>
+        <button id="modal-btn-select-store" onclick="toggleStoreSelectionFromModal()" class="btn-select-store-modal not-selected">
+            🛒 Выбрать этот магазин
+        </button>
+    </div>
+</div>
+
+<!-- 🪐 ОКНО 3: ЛИСТ ОЖИДАНИЯ -->
+<div id="modal-waiting-list" class="floating-modal hide">
+    <div class="floating-modal-header">
+        <span>⏳ Лист ожидания</span>
+        <div class="flex-row" style="width: auto; margin-bottom: 0; align-items: center;">
+            <div class="mac-search-wrapper">
+                <input type="text" id="wl-search-input" class="mac-search-input" placeholder="Поиск по ID..." oninput="filterWaitingList()" autocomplete="off">
+                <button type="button" class="mac-search-clear" id="wl-search-clear" onclick="clearWaitingListSearch()">✕</button>
+            </div>
+            <button class="modal-btn-blue" onclick="toggleAddForm()"></button>
+            <button class="modal-close-right" onclick="closeFloatingModal('modal-waiting-list')"></button>
+        </div>
+    </div>
+    
+    <div id="wl-add-form-block" class="wl-add-form">
+        <div class="wl-form-grid">
+            <div class="wl-form-group">
+                <label>ID задачи:</label>
+                <input type="number" id="wl-input-id" placeholder="Вручную">
+            </div>
+            <div class="wl-form-group">
+                <label>Классификатор:</label>
+                <select id="wl-input-classifier">
+                    <option value="класс 1">класс 1</option>
+                    <option value="класс 2">класс 2</option>
+                </select>
+            </div>
+            <div class="wl-form-group full-width">
+                <label>Комментарий:</label>
+                <input type="text" id="wl-input-comment" placeholder="Просил перезвонить...">
+            </div>
+            <div class="wl-form-group">
+                <label>Перезвонить в:</label>
+                <input type="datetime-local" id="wl-input-callback">
+            </div>
+            <div class="wl-form-group">
+                <label>Оператор:</label>
+                <input type="text" id="wl-input-operator" readonly style="opacity: 0.6;">
+            </div>
+        </div>
+        <div class="wl-form-actions">
+            <button type="button" id="wl-btn-delete" class="wl-btn-delete hide" onclick="deleteCurrentEditingTask()">Удалить</button>
+            <button type="button" class="wl-btn-save" onclick="saveNewTaskToSupabase()">Сохранить</button>
+        </div>
+    </div>
+
+    <div class="floating-modal-body">
+        <div id="wl-table-container">
+            <table class="wl-data-table">
+                <thead>
+                    <tr>
+                        <th>ID задачи</th>
+                        <th>Классификатор</th>
+                        <th>Комментарий</th>
+                        <th>Перезвонить</th>
+                        <th>Оператор</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody id="wl-table-body">
+                    <tr><td colspan="6" class="text-center small-label">Загрузка данных...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ПЛАВАЮЩАЯ НАВИГАЦИЯ -->
+<div id="scroll-nav" class="scroll-nav">
+    <button id="btn-minimized-order" onclick="restoreOrderModal()" class="hide" style="background: #4338ca;">📋</button>
+    <button onclick="scrollToTop()">▲</button>
+    <button id="btn-scroll-to-nearest" onclick="scrollToNearestCity()" class="hide" style="background: #ea580c;">🏠</button>
+    <button onclick="scrollToBottom()">▼</button>
+</div>
+
+<!-- 🪐 МИКРО-МОДАЛКА: БЫСТРОЕ ДОБАВЛЕНИЕ В ЛИСТ ОЖИДАНИЯ -->
+<div id="modal-quick-wl" class="modal-overlay">
+    <div class="modal-content" style="background: var(--bg-card); padding: 0; overflow: hidden; border: 1px solid var(--border-color);">
+        <div class="floating-modal-header">
+            <span>⏳ Добавить в Лист ожидания</span>
+            <button class="modal-close-right" onclick="closeQuickWaitingListModal()"></button>
+        </div>
+        <div class="floating-modal-body">
+            <div class="flex-row">
+                <div class="flex-1">
+                    <label class="input-label small-label">ID ЗАДАЧИ *</label>
+                    <input type="number" id="quick-wl-id" class="input-textarea single-line">
+                </div>
+                <div class="flex-1">
+                    <label class="input-label small-label">КЛАССИФИКАТОР</label>
+                    <select id="quick-wl-classifier" class="input-textarea single-line w-100">
+                        <option value="класс 1">класс 1</option>
+                        <option value="класс 2">класс 2</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-20">
+                <label class="input-label small-label">КОММЕНТАРИЙ</label>
+                <input type="text" id="quick-wl-comment" class="input-textarea single-line w-100">
+            </div>
+            <div class="flex-row mb-20">
+                <div class="flex-1">
+                    <label class="input-label small-label">ПЕРЕЗВОНИТЬ В</label>
+                    <input type="datetime-local" id="quick-wl-callback" class="input-textarea single-line">
+                </div>
+                <div class="flex-1">
+                    <label class="input-label small-label">ОПЕРАТОР</label>
+                    <input type="text" id="quick-wl-operator" class="input-textarea single-line" readonly style="opacity:0.7;">
+                </div>
+            </div>
+            <div class="flex-row" style="justify-content: flex-end; margin-bottom: 0;">
+                <button type="button" onclick="closeQuickWaitingListModal()" class="btn-main btn-secondary" style="flex: none; padding: 10px 20px;">Отмена</button>
+                <button type="button" id="btn-save-quick-wl" onclick="saveQuickWaitingListTask()" class="btn-main btn-primary" style="flex: none; padding: 10px 20px;">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ПОДКЛЮЧАЕМ НАШ ФАЙЛ С ЛОГИКОЙ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

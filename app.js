@@ -263,8 +263,9 @@ async function loadDatabase() {
             const cleanCity = (store.city || '').trim();
             let addr = (store.address || '').trim();
             
-            if (cleanCity && !addr.toLowerCase().startsWith(cleanCity.toLowerCase())) {
-                addr = `${cleanCity} ${addr}`;
+            // НОВАЯ ЛОГИКА: Если адрес начинается с названия города — отрезаем его
+            if (cleanCity && addr.toLowerCase().startsWith(cleanCity.toLowerCase())) {
+                addr = addr.substring(cleanCity.length).replace(/^[\s,]+/, '');
             }
             
             formattedDb[store.code] = {

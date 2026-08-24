@@ -25,41 +25,36 @@
 </head>
 <body>
 
-<!-- ЭКРАН АВТОРИЗАЦИИ И РЕГИСТРАЦИИ -->
+<!-- ЭКРАН АВТОРИЗАЦИИ -->
 <div id="auth-overlay" class="modal-overlay open" style="z-index: 9999; background: var(--bg-main);">
     <div class="app-card auth-card">
         
-        <div class="top-navbar mb-20">
-            <button id="auth-tab-login" onclick="toggleAuthTab('login')" class="nav-btn active">🔑 Вход</button>
-            <button id="auth-tab-register" onclick="toggleAuthTab('register')" class="nav-btn">📝 Запрос доступа</button>
+        <!-- БЛОК ЗАГРУЗКИ: Показывается по умолчанию -->
+        <div id="auth-initial-loader" style="text-align: center; padding: 30px 0;">
+            <div style="font-size: 32px; margin-bottom: 16px; animation: pulse 1.5s infinite;">⏳</div>
+            <h3 style="color: var(--text-main);">Проверка доступа...</h3>
         </div>
 
-        <h2 id="auth-title" class="app-title">Авторизация оператора</h2>
+        <!-- ФОРМА ТОЛЬКО ДЛЯ ВХОДА -->
+        <div id="auth-main-ui" class="hide">
+            <h2 id="auth-title" class="app-title">Авторизация оператора</h2>
 
-        <div id="auth-form">
-            <div id="register-fields" class="hide">
+            <div id="auth-form">
                 <div class="input-group">
-                    <label class="input-label">Фамилия и Имя</label>
-                    <input type="text" id="auth-fullname" class="input-textarea single-line" placeholder="Например: Камышин Иван">
+                    <label class="input-label">Рабочий Email</label>
+                    <input type="email" id="auth-email" class="input-textarea single-line" placeholder="operator@company.ru">
                 </div>
-                <div class="input-group">
-                    <label class="input-label">ID оператора</label>
-                    <input type="text" id="auth-operatorid" class="input-textarea single-line" placeholder="Например: 543">
+                <div class="input-group mb-20">
+                    <label class="input-label">Пароль</label>
+                    <input type="password" id="auth-password" class="input-textarea single-line" placeholder="••••••••">
                 </div>
-            </div>
 
-            <div class="input-group">
-                <label class="input-label">Рабочий Email</label>
-                <input type="email" id="auth-email" class="input-textarea single-line" placeholder="operator@company.ru">
+                <button id="auth-submit-btn" onclick="handleAuthSubmit()" class="btn-main btn-primary w-100">Войти в систему</button>
+                <div id="auth-status-message" class="status-message"></div>
             </div>
-            <div class="input-group mb-20">
-                <label class="input-label">Пароль</label>
-                <input type="password" id="auth-password" class="input-textarea single-line" placeholder="••••••••">
-            </div>
-
-            <button id="auth-submit-btn" onclick="handleAuthSubmit()" class="btn-main btn-primary w-100">Войти в систему</button>
-            <div id="auth-status-message" class="status-message"></div>
         </div>
+        <!-- Конец обертки формы -->
+        
     </div>
 </div>
 

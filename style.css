@@ -37,38 +37,45 @@
 }
 
 body.dark-mode {
-    --bg-main: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    --bg-card: #1e293b;
-    --bg-modal: #1e293b;
-    --bg-element: #334155;
-    --bg-hover: rgba(51, 65, 85, 0.4);
-    --bg-input: #1e293b;
+    /* Делаем фон более глубоким и темным для хорошего контраста */
+    --bg-main: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+    --bg-card: #111827;
+    --bg-element: #1f2937;
+    --bg-hover: rgba(55, 65, 81, 0.6);
+    --bg-input: #0b0f19;
     
-    --text-main: #f8fafc;
-    --text-title: #3b82f6;
-    --text-muted: #94a3b8;
-    --text-input: #f1f5f9;
+    /* Делаем текст чище и ярче */
+    --text-main: #f9fafb;
+    --text-title: #60a5fa;
+    --text-muted: #9ca3af;
+    --text-input: #f3f4f6;
     
-    --border-color: #475569;
-    --shadow-main: 0 10px 30px rgba(0, 0, 0, 0.4);
+    /* Границы чуть заметнее, тени плотнее */
+    --border-color: #374151;
+    --shadow-main: 0 10px 30px rgba(0, 0, 0, 0.6);
     
+    /* Сочный синий */
     --primary: #3b82f6;
-    --primary-hover: #60a5fa;
+    --primary-hover: #2563eb;
     --primary-text: #ffffff;
     
-    --success: #34d399;
-    --success-bg: #064e3b;
+    /* Убираем пастельность из зеленого — делаем яркий изумрудный/салатовый */
+    --success: #10b981; 
+    --success-bg: rgba(16, 185, 129, 0.1);
     --success-border: #059669;
     
-    --danger: #fca5a5;
-    --danger-bg: #451a03;
-    --danger-hover: #ef4444;
+    /* Убираем блекло-розовый — делаем чистый красный */
+    --danger: #ef4444;
+    --danger-bg: rgba(239, 68, 68, 0.1);
+    --danger-hover: #dc2626;
     
-    --badge-blue-bg: #1e3a8a;
+    /* Плашки магазинов */
+    --badge-blue-bg: rgba(59, 130, 246, 0.15);
     --badge-blue-text: #60a5fa;
     --badge-blue-border: #3b82f6;
     
-    --modal-overlay: rgba(15, 23, 42, 0.6);
+    --modal-bg: #111827;
+    --modal-overlay: rgba(0, 0, 0, 0.75);
 }
 
 /* ========================================================

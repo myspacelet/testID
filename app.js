@@ -1167,11 +1167,17 @@ function updateLiveScriptText() {
         } else {
             scriptText += `Отлично! Я звоню, чтобы согласовать детали доставки. В заказе у вас указан ${itemsString}, верно?\n\n`;
             scriptText += `Данный-(ые) товар-(ры) сейчас находятся в наличии магазина `;
+           
             if (selectedStoreCode && storeDatabase[selectedStoreCode]) {
                 const storeInfo = storeDatabase[selectedStoreCode];
                 const storeCityHtml = storeInfo.city ? `<span style="color: var(--success); font-weight: 700;">${storeInfo.city}</span>` : `<span style="color: var(--danger); font-weight: 700;">(Укажите данные)</span>`;
                 const storeAddressHtml = storeInfo.address ? `<span style="color: var(--success); font-weight: 700;">${storeInfo.address}</span>` : `<span style="color: var(--danger); font-weight: 700;">(Укажите данные)</span>`;
-                scriptText += `в городе ${storeCityHtml} по адресу: ${storeAddressHtml}.\n\n`;
+                
+                // Создаем иконку с нашей новой подсказкой
+                const storeHintHtml = `<span class="script-hint-badge" data-tooltip="Вы можете оформить заказ самовывозом из данного магазина. Как только заказ будет полностью скомплектован, мы направим курьера для перемещения его в Ваш город.">ℹ️</span>`;
+                
+                // Добавляем иконку сразу после адреса
+                scriptText += `в городе ${storeCityHtml} по адресу: ${storeAddressHtml}. ${storeHintHtml}\n\n`;
             } else {
                 scriptText += `<span style="color: var(--danger); font-weight: 700;">[⚠️ ВНИМАНИЕ: ТОЧКА ОТГРУЗКИ НЕ ВЫБРАНА]</span>.\n\n`;
             }

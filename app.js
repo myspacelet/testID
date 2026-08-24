@@ -798,24 +798,17 @@ function openFloatingModal(modalId) {
         if (modalId === 'modal-waiting-list') loadWaitingList();
         if (modalId === 'modal-send-form') loadShablons();
         
-        if (!modal.style.left || modal.style.left === "35%") {
-                    // Убираем жесткую привязку к 850px, берем реальную ширину элемента
-                    const modalWidth = modal.offsetWidth || 450;
-                    const modalHeight = modal.offsetHeight || 300;
-                    
-                    // Вычисляем идеальный центр по горизонтали
-                    const startLeft = Math.max(20, (window.innerWidth - modalWidth) / 2);
-                    modal.style.left = startLeft + "px";
-                    
-                    if (modalId === 'modal-process-order') {
-                        modal.style.top = '40px';
-                        modal.style.width = '';  
-                    } else {
-                        // Вычисляем центр по вертикали и отнимаем 80px, чтобы приподнять окно
-                        const startTop = Math.max(20, (window.innerHeight - modalHeight) / 2 - 80);
-                        modal.style.top = startTop + "px";
-                    }
-                }
+        // Динамическое центрирование средствами CSS
+        modal.style.left = '50%';
+        
+        if (modalId === 'modal-process-order') {
+            modal.style.top = '40px';
+            modal.style.transform = 'translateX(-50%)'; // Только по горизонтали
+        } else {
+            modal.style.top = '50%';
+            modal.style.transform = 'translate(-50%, -60%)'; // По центру и чуть выше уровня глаз
+        }
+        
         focusModal(modal);
     }
 }
@@ -878,12 +871,19 @@ function initModalDrag(e, modalId) {
 
 function handleModalDrag(e) {
     if (!activeDraggedModal) return;
+    
     let newX = e.clientX - modalXOffset;
     let newY = e.clientY - modalYOffset;
+    
+    // Не даем утащить окно за пределы экрана
     if (newX < 0) newX = 0;
     if (newY < 0) newY = 0;
     if (newX > window.innerWidth - 100) newX = window.innerWidth - 100;
     if (newY > window.innerHeight - 40) newY = window.innerHeight - 40;
+    
+    // Сбрасываем жесткое центрирование, чтобы окно плавно следовало за мышью
+    activeDraggedModal.style.transform = 'none';
+    
     activeDraggedModal.style.left = newX + 'px';
     activeDraggedModal.style.top = newY + 'px';
 }

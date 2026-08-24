@@ -488,3 +488,54 @@ body.dark-mode .mac-search-input { background: rgba(255, 255, 255, 0.08); border
 .city-modal-select-btn.disabled { background-color: var(--bg-element); color: var(--text-muted); border: 1px solid var(--border-color); cursor: not-allowed; opacity: 0.8; }
 
 @keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
+
+/* ========================================================
+   💡 ТУЛТИПЫ ДЛЯ СКРИПТА
+   ======================================================== */
+.script-hint-badge {
+    position: relative;
+    cursor: help;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    color: var(--primary);
+    font-size: 16px;
+    font-style: normal;
+}
+
+/* Сама всплывающая подсказка */
+.script-hint-badge:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text-title);
+    color: #ffffff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: normal;
+    width: max-content;
+    max-width: 280px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* Треугольный хвостик вниз */
+.script-hint-badge:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 95%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 7px solid transparent;
+    border-top-color: var(--text-title);
+    z-index: 1000;
+    pointer-events: none;
+}

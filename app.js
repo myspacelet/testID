@@ -1143,7 +1143,7 @@ function updateLiveScriptText() {
         const daysHtml = delivDays ? `<span style="color: var(--success); font-weight: 700;">${delivDays}</span>` : `<span style="color: var(--danger); font-weight: 700;">(Укажите данные)</span>`;
         const delivPrice = document.getElementById('script-deliv-price')?.value.trim() || '';
         const priceHtml = delivPrice ? `<span style="color: var(--success); font-weight: 700;">${delivPrice} руб.</span>` : `<span style="color: var(--danger); font-weight: 700;">(Укажите данные)</span>`;
-        const hintHtml = `<span class="script-hint-badge" title="Говорить ТОЛЬКО если клиент задает вопрос о цене">ℹ️</span>`;
+        const hintHtml = `<span class="script-hint-badge" data-tooltip="Если спросят точную стоимость: «Точная стоимость рассчитывается при оформлении отправления, можем сообщить ее позже»">ℹ️</span>`;
 
         scriptText += `Мы можем переместить заказ и ${currentDeliveryMode === 'pvz' ? 'отправить его в ваш город на пункт выдачи СДЭК' : 'доставить его курьером'} по адресу: ${addressHtml}. По срокам это займет ${daysHtml}, стоимость ${priceHtml} ${hintHtml}\n\n`;
         

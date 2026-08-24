@@ -45,7 +45,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
-    
+
     // Вспомогательная функция для показа полей ввода, если доступ закрыт
     const showLoginUI = () => {
         const loader = document.getElementById('auth-initial-loader');
@@ -302,17 +302,39 @@ async function loadExternalGeoDatabase() {
         const tzIdx = headers.indexOf('timezone');
         const regionIdx = headers.indexOf('region');
         const popIdx = headers.indexOf('population');
+        
+        // Добавляем индексы для решения проблемы с Истрой
+        const areaIdx = headers.indexOf('area');
+        const areaTypeIdx = headers.indexOf('area_type');
+        const settlementIdx = headers.indexOf('settlement');
 
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
             const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             
-            let cityName = "";
+        let cityName = "";
+            
+            // 1. Сначала ищем в стандартной колонке city
             if (cityIdx !== -1 && row[cityIdx] && row[cityIdx].replace(/"/g, '').trim() !== "") {
                 cityName = row[cityIdx].replace(/"/g, '').trim().toLowerCase();
-            } else if (addressIdx !== -1 && row[addressIdx]) {
+            } 
+            // 2. Если пусто, но это районный центр (как Истра), берем из колонки area
+            else if (areaIdx !== -1 && row[areaIdx] && row[areaIdx].replace(/"/g, '').trim() !== "" && row[areaTypeIdx] && row[areaTypeIdx].replace(/"/g, '').trim() === "г") {
+                cityName = row[areaIdx].replace(/"/g, '').trim().toLowerCase();
+            }
+            // 3. Для ПГТ и мелких поселений ищем в settlement
+            else if (settlementIdx !== -1 && row[settlementIdx] && row[settlementIdx].replace(/"/g, '').trim() !== "") {
+                cityName = row[settlementIdx].replace(/"/g, '').trim().toLowerCase();
+            }
+            // 4. Если вообще ничего нет, аккуратно вырезаем название из адреса
+            else if (addressIdx !== -1 && row[addressIdx]) {
                 let rawAddress = row[addressIdx].replace(/"/g, '').trim().toLowerCase();
-                cityName = rawAddress.replace(/^г\s+/, '').trim();
+                let cityPart = rawAddress.split(',').find(part => part.trim().startsWith('г '));
+                if (cityPart) {
+                    cityName = cityPart.replace(/г\s+/, '').trim();
+                } else {
+                    cityName = rawAddress.replace(/^г\s+/, '').trim();
+                }
             }
             
             if (!cityName) continue;

@@ -648,3 +648,38 @@ body.dark-mode .scroll-nav button:hover {
     background: rgba(10, 132, 255, 1) !important;
     transform: scale(1.05);
 }
+
+/* ========================================================
+   📍 ВЫПАДАЮЩИЙ СПИСОК DADATA
+   ======================================================== */
+.suggestions-dropdown {
+    position: absolute;
+    bottom: 100%; /* Выпадает вверх, чтобы не перекрывать кнопку */
+    left: 0;
+    right: 0;
+    background: var(--bg-element);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 4px;
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.suggestions-dropdown.hide { 
+    display: none; 
+}
+.suggestion-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--border-color);
+}
+.suggestion-item:last-child { 
+    border-bottom: none; 
+}
+.suggestion-item:hover { 
+    background: var(--primary); 
+    color: #ffffff; 
+}

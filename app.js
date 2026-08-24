@@ -46,6 +46,65 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // === ЖИВОЙ ПОИСК DADATA (АВТОЗАПОЛНЕНИЕ) ===
+    const suggestionsBox = document.getElementById('geo-suggestions');
+    let debounceTimer;
+
+    if (geoInput && suggestionsBox) {
+        geoInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            clearTimeout(debounceTimer); // Сбрасываем таймер при каждой новой букве
+            
+            // Если введено меньше 2 букв - скрываем список
+            if (query.length < 2) {
+                suggestionsBox.classList.add('hide');
+                return;
+            }
+
+            // Ждем 400мс после того как оператор перестал печатать (экономим лимиты API)
+            debounceTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch("https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/address", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "Accept": "application/json", "Authorization": "Token " + DADATA_API_TOKEN },
+                        body: JSON.stringify({ query: query, count: 5 }) // Просим 5 вариантов
+                    });
+                    const result = await response.json();
+                    
+                    if (result.suggestions && result.suggestions.length > 0) {
+                        suggestionsBox.innerHTML = '';
+                        result.suggestions.forEach(item => {
+                            const div = document.createElement('div');
+                            div.className = 'suggestion-item';
+                            div.innerText = item.value; // Полный адрес (Кадошкино, Мордовия)
+                            
+                            // При клике на подсказку
+                            div.onclick = () => {
+                                geoInput.value = item.value; // Вставляем в поле
+                                suggestionsBox.classList.add('hide'); // Прячем список
+                                findNearestStore(); // Автоматически запускаем поиск!
+                            };
+                            suggestionsBox.appendChild(div);
+                        });
+                        suggestionsBox.classList.remove('hide');
+                    } else {
+                        suggestionsBox.classList.add('hide');
+                    }
+                } catch (err) {
+                    console.error("Ошибка автозаполнения:", err);
+                }
+            }, 400); 
+        });
+
+        // Скрываем список, если кликнуть в пустую область экрана
+        document.addEventListener('click', (e) => {
+            if (!geoInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                suggestionsBox.classList.add('hide');
+            }
+        });
+    }
+    // ===========================================
+
     // Вспомогательная функция для показа полей ввода, если доступ закрыт
     const showLoginUI = () => {
         const loader = document.getElementById('auth-initial-loader');

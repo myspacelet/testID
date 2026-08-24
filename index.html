@@ -125,7 +125,10 @@
             <div class="geo-block">
                 <label class="input-label">📍 Найти ближайший из найденных</label>
                 <div class="geo-input-wrapper">
-                    <input type="text" id="geo-search-input" class="input-textarea single-line" placeholder="Введите город, село, деревню клиента...">
+                    <div style="position: relative; flex: 1; width: 100%;">
+                        <input type="text" id="geo-search-input" class="input-textarea single-line" style="width: 100%;" placeholder="Введите город, село, деревню клиента..." autocomplete="off">
+                        <div id="geo-suggestions" class="suggestions-dropdown hide"></div>
+                    </div>
                     <button onclick="findNearestStore()" class="btn-orange">Найти ближайший</button>
                 </div>
                 <div id="geo-result-output" class="status-message"></div>

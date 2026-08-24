@@ -35,8 +35,17 @@ window.addEventListener('DOMContentLoaded', async () => {
     loadDatabase();
     loadExternalGeoDatabase();
     
-    // ... (код темы и поиска по Enter оставляем без изменений) ...
-
+// Поиск по Enter в гео-инпуте
+    const geoInput = document.getElementById('geo-search-input');
+    if (geoInput) {
+        geoInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                findNearestStore();
+            }
+        });
+    }
+    
     // Вспомогательная функция для показа полей ввода, если доступ закрыт
     const showLoginUI = () => {
         const loader = document.getElementById('auth-initial-loader');

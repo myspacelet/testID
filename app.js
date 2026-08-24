@@ -1475,7 +1475,7 @@ function copyTaskIdToClipboard(event, idText) {
     });
 }
 
-// Новая функция для создания и показа уведомлений (ОСТАВЛЯЕМ!)
+// Новая функция для создания и показа уведомлений
 function showToast(message) {
     let toast = document.getElementById('global-toast');
     
@@ -1486,21 +1486,6 @@ function showToast(message) {
         toast.className = 'toast-notification';
         document.body.appendChild(toast);
     }
-    
-    // Обновляем текст и показываем
-    toast.innerHTML = message;
-    toast.classList.add('show');
-    
-    // Если уже был запущен таймер скрытия — сбрасываем его
-    if (toast.hideTimeout) {
-        clearTimeout(toast.hideTimeout);
-    }
-    
-    // Прячем через 2 секунды (2000 мс)
-    toast.hideTimeout = setTimeout(() => {
-        toast.classList.remove('show');
-    }, 2000);
-}
     
     // Обновляем текст и показываем
     toast.innerHTML = message;

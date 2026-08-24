@@ -799,18 +799,23 @@ function openFloatingModal(modalId) {
         if (modalId === 'modal-send-form') loadShablons();
         
         if (!modal.style.left || modal.style.left === "35%") {
-            const modalWidth = modalId === "modal-waiting-list" ? 850 : (modal.offsetWidth || 450);
-            const modalHeight = modal.offsetHeight || 300;
-            const startLeft = Math.max(20, (window.innerWidth - modalWidth) / 2);
-            modal.style.left = startLeft + "px";
-            
-            if (modalId === 'modal-process-order') {
-                modal.style.top = '40px';
-                modal.style.width = '';  
-            } else {
-                modal.style.top = Math.max(20, (window.innerHeight - modalHeight) / 2) + "px";
-            }
-        }
+                    // Убираем жесткую привязку к 850px, берем реальную ширину элемента
+                    const modalWidth = modal.offsetWidth || 450;
+                    const modalHeight = modal.offsetHeight || 300;
+                    
+                    // Вычисляем идеальный центр по горизонтали
+                    const startLeft = Math.max(20, (window.innerWidth - modalWidth) / 2);
+                    modal.style.left = startLeft + "px";
+                    
+                    if (modalId === 'modal-process-order') {
+                        modal.style.top = '40px';
+                        modal.style.width = '';  
+                    } else {
+                        // Вычисляем центр по вертикали и отнимаем 80px, чтобы приподнять окно
+                        const startTop = Math.max(20, (window.innerHeight - modalHeight) / 2 - 80);
+                        modal.style.top = startTop + "px";
+                    }
+                }
         focusModal(modal);
     }
 }

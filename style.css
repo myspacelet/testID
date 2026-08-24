@@ -579,3 +579,16 @@ body.dark-mode .mac-search-input { background: rgba(255, 255, 255, 0.08); border
     opacity: 1;
     transform: translate(-50%, 0);
 }
+
+/* ========================================================
+   🛠️ ПОДСКАЗКИ В ТЕМНОЙ ТЕМЕ
+   ======================================================== */
+body.dark-mode .script-hint-badge:hover::after {
+    background: #38383a; /* Строгий темно-серый цвет в стиле macOS */
+    color: #ffffff;      /* Белый текст */
+    border: 1px solid #4d4d4f; /* Тонкая рамка для контраста */
+}
+
+body.dark-mode .script-hint-badge:hover::before {
+    border-top-color: #38383a; /* Красим треугольный хвостик в тот же серый */
+}

@@ -592,3 +592,59 @@ body.dark-mode .script-hint-badge:hover::after {
 body.dark-mode .script-hint-badge:hover::before {
     border-top-color: #38383a; /* Красим треугольный хвостик в тот же серый */
 }
+
+/* ========================================================
+   🍏 ПРЕМИАЛЬНЫЕ КНОПКИ В СТИЛЕ MACOS (ТЕМНАЯ ТЕМА)
+   ======================================================== */
+
+/* 1. Успокаиваем зеленые плашки магазинов (убираем кислотную рамку) */
+body.dark-mode {
+    --success: #30d158; /* Оригинальный iOS/Mac зеленый */
+    --success-bg: rgba(48, 209, 88, 0.12);
+    --success-border: rgba(48, 209, 88, 0.25); /* Мягкая, полупрозрачная рамка */
+}
+
+/* 2. Большая зеленая кнопка (глубокий, спокойный зеленый) */
+body.dark-mode .btn-add {
+    background: #248a3d !important; 
+    border: 1px solid #1a6b2e !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+body.dark-mode .btn-add:hover {
+    background: #2ea043 !important;
+}
+
+/* 3. Кнопка "Сбросить всё" (нативный графитовый цвет macOS) */
+body.dark-mode .btn-secondary {
+    background: #3a3a3c !important;
+    border: 1px solid #545456 !important;
+    color: #ececec !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+body.dark-mode .btn-secondary:hover {
+    background: #444446 !important;
+}
+
+/* 4. Оранжевая кнопка "Найти ближайший" (оригинальный Apple Orange) */
+body.dark-mode .btn-orange {
+    background: #e58600 !important;
+    border: 1px solid #cc7700 !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+body.dark-mode .btn-orange:hover {
+    background: #ff9f0a !important;
+}
+
+/* 5. Плавающие кнопки навигации (добавляем эффект матового стекла) */
+body.dark-mode .scroll-nav button {
+    background: rgba(10, 132, 255, 0.8) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+body.dark-mode .scroll-nav button:hover {
+    background: rgba(10, 132, 255, 1) !important;
+    transform: scale(1.05);
+}

@@ -1461,9 +1461,41 @@ function copyTaskIdToClipboard(event, idText) {
     navigator.clipboard.writeText(idText.trim()).then(() => {
         const cell = event.currentTarget;
         const originalColor = cell.style.color;
-        cell.style.color = 'var(--success)'; cell.innerText = 'Скопировано!';
-        setTimeout(() => { cell.style.color = originalColor; cell.innerText = idText.trim(); }, 600);
+        
+        // Подсвечиваем ID зеленым цветом на секунду
+        cell.style.color = 'var(--success)';
+        setTimeout(() => { cell.style.color = originalColor; }, 1000);
+        
+        // Вызываем красивое уведомление
+        showToast(`✅ ID ${idText.trim()} скопирован`);
     });
+}
+
+// Новая функция для создания и показа уведомлений
+function showToast(message) {
+    let toast = document.getElementById('global-toast');
+    
+    // Если элемента еще нет на странице — создаем его
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'global-toast';
+        toast.className = 'toast-notification';
+        document.body.appendChild(toast);
+    }
+    
+    // Обновляем текст и показываем
+    toast.innerHTML = message;
+    toast.classList.add('show');
+    
+    // Если уже был запущен таймер скрытия — сбрасываем его
+    if (toast.hideTimeout) {
+        clearTimeout(toast.hideTimeout);
+    }
+    
+    // Прячем через 2 секунды (2000 мс)
+    toast.hideTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 2000);
 }
 
 function openQuickWaitingListModal() {

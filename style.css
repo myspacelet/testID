@@ -40,46 +40,46 @@ body.dark-mode {
     /* Включаем нативные темные скроллбары браузера */
     color-scheme: dark;
     
-    /* Возвращаем привычные мягкие темно-синие фоны */
-    --bg-main: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    --bg-card: #1e293b;
-    --bg-element: #334155;
-    --bg-hover: rgba(51, 65, 85, 0.4);
-    --bg-input: #1e293b;
+    /* 🍎 Нейтральные серые фоны в стиле macOS */
+    --bg-main: linear-gradient(135deg, #242424 0%, #121212 100%);
+    --bg-card: #1e1e1e; /* Классический фон окна (нейтральный темно-серый) */
+    --bg-element: #2d2d2d; /* Фон панелей и кнопок (чуть светлее окна) */
+    --bg-hover: rgba(255, 255, 255, 0.1);
+    --bg-input: #141414; /* Темные инпуты (утопленные) */
     
-    /* Светлый текст для читаемости */
-    --text-main: #f8fafc;
-    --text-title: #60a5fa;
-    --text-muted: #94a3b8;
-    --text-input: #f1f5f9;
+    /* 🍎 Системный текст */
+    --text-main: #ececec;
+    --text-title: #ffffff; /* Нейтрально-белый заголовок */
+    --text-muted: #98989d; /* Оригинальный системный серый Apple */
+    --text-input: #ffffff;
     
-    /* Границы и тени */
-    --border-color: #475569;
-    --shadow-main: 0 10px 30px rgba(0, 0, 0, 0.4);
+    /* Тонкие границы в стиле Mac */
+    --border-color: #38383a; 
+    --shadow-main: 0 10px 30px rgba(0, 0, 0, 0.5);
     
-    /* Сочный синий */
-    --primary: #3b82f6;
-    --primary-hover: #2563eb;
+    /* 🍎 Оригинальный синий акцент macOS */
+    --primary: #0a84ff; 
+    --primary-hover: #0070e0;
     --primary-text: #ffffff;
     
-    /* Оставляем ЯРКИЙ зеленый (вместо блеклого) */
-    --success: #10b981; 
-    --success-bg: rgba(16, 185, 129, 0.15);
-    --success-border: #059669;
+    /* 🍎 Оригинальный зеленый macOS */
+    --success: #32d74b; 
+    --success-bg: rgba(50, 215, 75, 0.15);
+    --success-border: #28a745;
     
-    /* Оставляем ЯРКИЙ красный (вместо блеклого) */
-    --danger: #ef4444;
-    --danger-bg: rgba(239, 68, 68, 0.15);
-    --danger-hover: #dc2626;
+    /* 🍎 Оригинальный красный macOS */
+    --danger: #ff453a; 
+    --danger-bg: rgba(255, 69, 58, 0.15);
+    --danger-hover: #ff3b30;
     
     /* Плашки магазинов */
-    --badge-blue-bg: rgba(59, 130, 246, 0.15);
-    --badge-blue-text: #60a5fa;
-    --badge-blue-border: #3b82f6;
+    --badge-blue-bg: rgba(10, 132, 255, 0.15);
+    --badge-blue-text: #6ea8fe;
+    --badge-blue-border: #0a84ff;
     
-    /* Явно задаем фон модалки, чтобы он совпадал с карточками */
+    /* Фон модалки совпадает с карточками */
     --modal-bg: var(--bg-card);
-    --modal-overlay: rgba(15, 23, 42, 0.75);
+    --modal-overlay: rgba(0, 0, 0, 0.65);
 }
 
 /* ========================================================

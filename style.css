@@ -37,36 +37,39 @@
 }
 
 body.dark-mode {
-    /* Делаем фон более глубоким и темным для хорошего контраста */
-    --bg-main: linear-gradient(135deg, #0f172a 0%, #020617 100%);
-    --bg-card: #111827;
-    --bg-element: #1f2937;
-    --bg-hover: rgba(55, 65, 81, 0.6);
-    --bg-input: #0b0f19;
+    /* Включаем нативные темные скроллбары браузера */
+    color-scheme: dark;
     
-    /* Делаем текст чище и ярче */
-    --text-main: #f9fafb;
+    /* Возвращаем привычные мягкие темно-синие фоны */
+    --bg-main: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    --bg-card: #1e293b;
+    --bg-element: #334155;
+    --bg-hover: rgba(51, 65, 85, 0.4);
+    --bg-input: #1e293b;
+    
+    /* Светлый текст для читаемости */
+    --text-main: #f8fafc;
     --text-title: #60a5fa;
-    --text-muted: #9ca3af;
-    --text-input: #f3f4f6;
+    --text-muted: #94a3b8;
+    --text-input: #f1f5f9;
     
-    /* Границы чуть заметнее, тени плотнее */
-    --border-color: #374151;
-    --shadow-main: 0 10px 30px rgba(0, 0, 0, 0.6);
+    /* Границы и тени */
+    --border-color: #475569;
+    --shadow-main: 0 10px 30px rgba(0, 0, 0, 0.4);
     
     /* Сочный синий */
     --primary: #3b82f6;
     --primary-hover: #2563eb;
     --primary-text: #ffffff;
     
-    /* Убираем пастельность из зеленого — делаем яркий изумрудный/салатовый */
+    /* Оставляем ЯРКИЙ зеленый (вместо блеклого) */
     --success: #10b981; 
-    --success-bg: rgba(16, 185, 129, 0.1);
+    --success-bg: rgba(16, 185, 129, 0.15);
     --success-border: #059669;
     
-    /* Убираем блекло-розовый — делаем чистый красный */
+    /* Оставляем ЯРКИЙ красный (вместо блеклого) */
     --danger: #ef4444;
-    --danger-bg: rgba(239, 68, 68, 0.1);
+    --danger-bg: rgba(239, 68, 68, 0.15);
     --danger-hover: #dc2626;
     
     /* Плашки магазинов */
@@ -74,8 +77,9 @@ body.dark-mode {
     --badge-blue-text: #60a5fa;
     --badge-blue-border: #3b82f6;
     
-    --modal-bg: #111827;
-    --modal-overlay: rgba(0, 0, 0, 0.75);
+    /* Явно задаем фон модалки, чтобы он совпадал с карточками */
+    --modal-bg: var(--bg-card);
+    --modal-overlay: rgba(15, 23, 42, 0.75);
 }
 
 /* ========================================================

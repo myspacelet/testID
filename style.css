@@ -78,7 +78,7 @@ body.dark-mode {
     --badge-blue-border: #0a84ff;
     
     /* Фон модалки совпадает с карточками */
-    --modal-bg: var(--bg-card);
+    --bg-modal: var(--bg-card);
     --modal-overlay: rgba(0, 0, 0, 0.65);
 }
 

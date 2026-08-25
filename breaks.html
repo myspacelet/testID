@@ -43,10 +43,13 @@
 <div id="breaks-app" class="hide app-fullscreen-wrapper">
     
     <!-- Навигационная панель -->
-    <div class="mac-header" style="flex-shrink: 0;">
-        <div style="display: flex; align-items: center; gap: 20px;">
+        <div class="mac-header" style="flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <!-- 👈 Кнопка возврата к выбору канала -->
+           <button class="btn-back-channel" onclick="goToChannelSelection()" title="Сменить канал">⬅️</button>
+            
             <div style="font-weight: 800; color: var(--primary); letter-spacing: 1px; font-size: 18px;">LETU BREAKS</div>
-            <div style="color: var(--text-muted); font-size: 14px; border-left: 2px solid var(--border-color); padding-left: 20px;">
+            <div style="color: var(--text-muted); font-size: 14px; border-left: 2px solid var(--border-color); padding-left: 15px;">
                 ID: <span id="op-id-display" style="color: var(--text-main); font-weight: 700;"></span>
             </div>
         </div>

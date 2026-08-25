@@ -960,3 +960,20 @@ body.dark-mode .scroll-nav button:hover {
     background: #ff4d4d;
     color: #fff;
 }
+
+/* Кнопка возврата к выбору канала */
+.btn-back-channel {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 6px 10px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-back-channel:hover {
+    border-color: var(--primary);
+    background: rgba(230, 0, 126, 0.05);
+}

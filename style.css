@@ -757,6 +757,7 @@ body.dark-mode .scroll-nav button:hover {
     box-shadow: 0 4px 20px rgba(0,0,0,0.03);
     width: 100%;
     box-sizing: border-box;
+    flex-shrink: 0; 
 }
 
 /* Просторная сетка, которая занимает оставшуюся высоту */

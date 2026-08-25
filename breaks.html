@@ -41,7 +41,47 @@
 
 <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ ПЕРЕРЫВОВ -->
 <div id="breaks-app" class="hide">
-    <h1 style="color: white; text-align: center; margin-top: 50px;">Добро пожаловать в панель перерывов!</h1>
+    
+    <!-- Навигационная панель -->
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; background: var(--bg-card); border-bottom: 1px solid var(--border-color); margin-bottom: 30px;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="font-weight: bold; color: var(--primary); letter-spacing: 2px;">LETU BREAKS</div>
+            <div style="color: var(--text-muted); font-size: 13px;">
+                ID: <span id="op-id-display" style="color: var(--text-main); font-weight: bold;"></span>
+            </div>
+        </div>
+        
+        <div id="op-channel-display" style="font-weight: 600; color: #00aeef; font-size: 15px; letter-spacing: 1px;"></div>
+        
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-mac-channel" style="padding: 8px 15px; margin: 0; width: auto;" onclick="logout()">🚪 Выйти</button>
+        </div>
+    </div>
+
+    <!-- Область оператора -->
+    <div id="op-dashboard" class="hide" style="padding: 0 20px;">
+        
+        <!-- Выбранные мной слоты -->
+        <div id="my-booked-tags" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 25px; min-height: 35px;">
+            <!-- Теги появятся здесь -->
+        </div>
+
+        <!-- Сетка -->
+        <div class="slots-grid">
+            <div class="slots-col">
+                <h3 class="slots-title">Перерывы (10 мин)</h3>
+                <div style="text-align:center; font-size:11px; color:var(--text-muted); margin-top:-15px; margin-bottom:15px;">Лимит: 4 шт.</div>
+                <div id="breaks-10-container" class="slots-container"></div>
+            </div>
+            
+            <div class="slots-col">
+                <h3 class="slots-title">Обеды (30 мин)</h3>
+                <div style="text-align:center; font-size:11px; color:var(--text-muted); margin-top:-15px; margin-bottom:15px;">Лимит: 1 шт.</div>
+                <div id="lunches-30-container" class="slots-container"></div>
+            </div>
+        </div>
+
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

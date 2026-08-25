@@ -737,3 +737,90 @@ body.dark-mode .scroll-nav button:hover {
 .ch-hl:hover { background: rgba(230, 0, 126, 0.1); border-color: var(--primary); color: var(--text-main); }
 .ch-live:hover { background: rgba(10, 132, 255, 0.1); border-color: #0a84ff; color: var(--text-main); }
 .ch-night:hover { background: rgba(255, 159, 10, 0.1); border-color: #ff9f0a; color: var(--text-main); }
+
+/* ========================================================
+   🍏 СЕТКА ИНТЕРВАЛОВ И ТЕГИ (OP UI)
+   ======================================================== */
+.slots-grid {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.slots-col {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.slots-title {
+    text-align: center;
+    color: var(--primary);
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.slots-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 60vh;
+    overflow-y: auto; /* Скролл, если слотов много */
+    padding-right: 5px;
+}
+
+.mac-slot {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-main);
+    background: var(--bg-main);
+}
+
+.mac-slot:hover {
+    border-color: var(--primary);
+    background: rgba(230, 0, 126, 0.05);
+    transform: translateY(-1px);
+}
+
+/* Состояние: занято другим оператором */
+.mac-slot.booked {
+    opacity: 0.4;
+    border-style: dashed;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Состояние: занято мной */
+.mac-slot.my {
+    border-color: #00aeef;
+    color: #00aeef;
+    background: rgba(0, 174, 239, 0.05);
+    border-width: 2px;
+}
+
+/* Тег выбранного слота в шапке */
+.my-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: rgba(0, 174, 239, 0.1);
+    border: 1px solid #00aeef;
+    border-radius: 20px;
+    color: #00aeef;
+    font-size: 13px;
+    font-weight: bold;
+}

@@ -266,10 +266,16 @@ function goToChannelSelection() {
     // Стираем сохраненный канал из памяти
     localStorage.removeItem('savedChannel');
     
-    // Прячем сетку слотов оператора
-    document.getElementById('op-dashboard').classList.add('hide');
+    // Прячем всё приложение перерывов целиком
+    document.getElementById('breaks-app').classList.add('hide');
     
-    // ПОКАЗЫВАЕМ обратно экран выбора канала! (Этого нам не хватало)
+    // Сбрасываем дашборд оператора (чтобы при следующем входе не висели старые теги)
+    document.getElementById('op-dashboard').classList.add('hide');
+    document.getElementById('my-booked-tags').innerHTML = '';
+    mySelectedBreaks = 0;
+    mySelectedLunches = 0;
+    
+    // Показываем обратно экран выбора канала
     document.getElementById('channel-screen').classList.remove('hide');
     
     // Сбрасываем переменную выбранного канала

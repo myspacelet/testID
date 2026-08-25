@@ -266,12 +266,13 @@ function goToChannelSelection() {
     // Стираем сохраненный канал из памяти
     localStorage.removeItem('savedChannel');
     
-    // Прячем сетку слотов и показываем экран выбора канала
+    // Прячем сетку слотов оператора
     document.getElementById('op-dashboard').classList.add('hide');
-    document.getElementById('breaks-app').classList.add('app-fullscreen-wrapper'); // на всякий случай
+    
+    // ПОКАЗЫВАЕМ обратно экран выбора канала! (Этого нам не хватало)
     document.getElementById('channel-screen').classList.remove('hide');
     
-    // Сбрасываем выбранный канал
+    // Сбрасываем переменную выбранного канала
     selectedChannel = null;
     
     console.log("🔄 Возврат к выбору канала связи");

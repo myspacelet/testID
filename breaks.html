@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/jpg" href="favicon.jpg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель перерывов</title>
+    <!-- Подключаем наш общий премиальный стиль от ИД 2.0 -->
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* ========================================================
+           🍏 СТИЛИ ЭКРАНА ВЫБОРА КАНАЛА (macOS Style)
+           ======================================================== */
+        .mac-channel-card {
+            max-width: 380px;
+            margin: 15vh auto;
+            background: rgba(30, 30, 32, 0.6); /* Полупрозрачный темный фон */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            padding: 35px 30px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+
+        .mac-channel-title {
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .btn-mac-channel {
+            width: 100%;
+            margin-bottom: 12px;
+            padding: 15px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #ececec;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* Мягкие подсветки при наведении вместо кислотного неона */
+        .btn-mac-channel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .btn-mac-channel:active {
+            transform: translateY(1px);
+        }
+
+        .ch-hl:hover { background: rgba(230, 0, 126, 0.15); border-color: rgba(230, 0, 126, 0.3); color: #fff; }
+        .ch-live:hover { background: rgba(10, 132, 255, 0.15); border-color: rgba(10, 132, 255, 0.3); color: #fff; }
+        .ch-night:hover { background: rgba(255, 159, 10, 0.15); border-color: rgba(255, 159, 10, 0.3); color: #fff; }
+        
+        .hide { display: none !important; }
+    </style>
+</head>
+<body class="dark-mode"> <!-- Сразу форсируем темную тему для перерывов -->
+
+<!-- ЭКРАН ЗАГРУЗКИ / ПРОВЕРКИ СЕССИИ -->
+<div id="auth-loader" class="modal-overlay open" style="z-index: 9999; background: var(--bg-main);">
+    <div style="text-align: center; padding: 30px 0;">
+        <div style="font-size: 32px; margin-bottom: 16px; animation: pulse 1.5s infinite;">⏳</div>
+        <h3 style="color: var(--text-main);">Проверка доступа...</h3>
+    </div>
+</div>
+
+<!-- ОКНО ВЫБОРА КАНАЛА (Показывается только для роли 'op') -->
+<div id="channel-screen" class="hide">
+    <div class="mac-channel-card">
+        <div class="mac-channel-title">Выберите канал связи</div>
+        
+        <button class="btn-mac-channel ch-hl" onclick="selectChannel('HL')">
+            <span>📞</span> Горячая линия
+        </button>
+        <button class="btn-mac-channel ch-live" onclick="selectChannel('LIVE')">
+            <span>💬</span> Чат LIVETEX
+        </button>
+        <button class="btn-mac-channel ch-night" onclick="selectChannel('NIGHT')">
+            <span>🌙</span> Чат LIVETEX Ночь
+        </button>
+        
+        <!-- Кнопка возврата в ИД 2.0 (появится только если зашел admin) -->
+        <button id="btn-back-to-id" class="btn-mac-channel" style="margin-top: 20px; border: 1px dashed rgba(255,255,255,0.2); background: transparent;" onclick="window.location.href='index.html'" class="hide">
+            <span>⬅️</span> Вернуться в ИД 2.0
+        </button>
+    </div>
+</div>
+
+<!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ ПЕРЕРЫВОВ (Откроется после выбора канала) -->
+<div id="breaks-app" class="hide">
+    <!-- Сюда мы будем верстать сетку слотов и панель админа на следующих шагах -->
+    <h1 style="color: white; text-align: center; margin-top: 50px;">Добро пожаловать в панель перерывов!</h1>
+</div>
+
+<!-- Подключаем Supabase и наш скрипт логики -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="breaks.js"></script>
+
+</body>
+</html>

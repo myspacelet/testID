@@ -196,21 +196,29 @@ function logout() {
 // 🌓 ТЕМА ОФОРМЛЕНИЯ
 // ========================================================
 function toggleTheme() {
-    const isLight = document.body.classList.toggle('light-theme');
-    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    // Переключаем именно класс dark-mode
+    const isDark = document.body.classList.toggle('dark-mode');
+    
+    // Запоминаем выбор
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    
+    // Меняем иконку (показываем текущую тему)
     const btn = document.getElementById('theme-btn');
-    if (btn) btn.innerText = isLight ? '☀️' : '🌙';
+    if (btn) btn.innerText = isDark ? '🌙' : '☀️';
 }
 
 // Проверяем тему при старте страницы
 const savedTheme = localStorage.getItem('theme');
-if (savedTheme === 'light') { 
-    document.body.classList.add('light-theme'); 
+if (savedTheme === 'dark') { 
+    document.body.classList.add('dark-mode'); 
+} else if (savedTheme === 'light') {
+    document.body.classList.remove('dark-mode');
 }
+
 // Синхронизируем иконку кнопки после полной загрузки DOM
 window.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('theme-btn');
     if (btn) {
-        btn.innerText = document.body.classList.contains('light-theme') ? '☀️' : '🌙';
+        btn.innerText = document.body.classList.contains('dark-mode') ? '🌙' : '☀️';
     }
 });

@@ -690,18 +690,16 @@ body.dark-mode .scroll-nav button:hover {
 .mac-channel-card {
     max-width: 380px;
     margin: 15vh auto;
-    background: rgba(30, 30, 32, 0.6); 
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-card); /* Умный фон карточки */
+    border: 1px solid var(--border-color); /* Умная рамка */
     border-radius: 18px;
     padding: 35px 30px;
     text-align: center;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
 }
 
 .mac-channel-title {
-    color: #ffffff;
+    color: var(--text-main); /* Умный текст */
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 25px;
@@ -718,9 +716,9 @@ body.dark-mode .scroll-nav button:hover {
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #ececec;
+    background: var(--bg-main); /* Умный фон кнопки */
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -729,12 +727,13 @@ body.dark-mode .scroll-nav button:hover {
 
 .btn-mac-channel:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 .btn-mac-channel:active {
     transform: translateY(1px);
 }
 
-.ch-hl:hover { background: rgba(230, 0, 126, 0.15); border-color: rgba(230, 0, 126, 0.3); color: #fff; }
-.ch-live:hover { background: rgba(10, 132, 255, 0.15); border-color: rgba(10, 132, 255, 0.3); color: #fff; }
-.ch-night:hover { background: rgba(255, 159, 10, 0.15); border-color: rgba(255, 159, 10, 0.3); color: #fff; }
+/* Цветные акценты при наведении */
+.ch-hl:hover { background: rgba(230, 0, 126, 0.1); border-color: var(--primary); color: var(--text-main); }
+.ch-live:hover { background: rgba(10, 132, 255, 0.1); border-color: #0a84ff; color: var(--text-main); }
+.ch-night:hover { background: rgba(255, 159, 10, 0.1); border-color: #ff9f0a; color: var(--text-main); }

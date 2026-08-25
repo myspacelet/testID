@@ -56,7 +56,16 @@ window.addEventListener('DOMContentLoaded', async () => {
 
         // Если это 'op' или 'admin' — пускаем!
         loader.classList.add('hide');
-        channelScreen.classList.remove('hide');
+
+        // 🧠 ПРОВЕРЯЕМ ПАМЯТЬ БРАУЗЕРА
+        const savedChannel = localStorage.getItem('savedChannel');
+        if (savedChannel) {
+            // Если канал уже был выбран — сразу загружаем его
+            selectChannel(savedChannel);
+        } else {
+            // Если нет — показываем окно выбора
+            channelScreen.classList.remove('hide');
+        }
 
         // Если это админ, показываем ему кнопку возврата в ИД 2.0
         if (currentRole === 'admin' && btnBackToId) {
@@ -74,6 +83,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 // ========================================================
 function selectChannel(channelCode) {
     selectedChannel = channelCode;
+    localStorage.setItem('savedChannel', channelCode); 
     
     // Прячем меню выбора канала и показываем основное приложение
     document.getElementById('channel-screen').classList.add('hide');
@@ -211,6 +221,7 @@ function handleSlotClick(element, type, timeString) {
 // Функция выхода
 function logout() {
     if (confirm("Выйти из системы?")) {
+        localStorage.removeItem('savedChannel'); // 👈 ОЧИЩАЕМ ПАМЯТЬ
         supabaseClient.auth.signOut().then(() => {
             window.location.href = 'index.html';
         });

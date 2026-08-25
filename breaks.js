@@ -191,3 +191,26 @@ function logout() {
         });
     }
 }
+
+// ========================================================
+// 🌓 ТЕМА ОФОРМЛЕНИЯ
+// ========================================================
+function toggleTheme() {
+    const isLight = document.body.classList.toggle('light-theme');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.innerText = isLight ? '☀️' : '🌙';
+}
+
+// Проверяем тему при старте страницы
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'light') { 
+    document.body.classList.add('light-theme'); 
+}
+// Синхронизируем иконку кнопки после полной загрузки DOM
+window.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('theme-btn');
+    if (btn) {
+        btn.innerText = document.body.classList.contains('light-theme') ? '☀️' : '🌙';
+    }
+});

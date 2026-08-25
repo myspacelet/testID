@@ -189,7 +189,20 @@ function handleSlotClick(element, type, timeString) {
         }
     };
 
-    tagsContainer.appendChild(tag);
+    // 🧠 УМНАЯ СОРТИРОВКА
+    // Превращаем все текущие теги в массив
+    const existingTags = Array.from(tagsContainer.children);
+    
+    // Ищем первый тег, у которого время ПОЗЖЕ, чем то, которое мы сейчас кликнули
+    const nextNode = existingTags.find(t => t.innerText > timeString);
+
+    if (nextNode) {
+        // Если нашли такой тег — вставляем наш НОВЫЙ тег ровно ПЕРЕД ним
+        tagsContainer.insertBefore(tag, nextNode);
+    } else {
+        // Если таких нет (наше время самое позднее) — просто кидаем в конец
+        tagsContainer.appendChild(tag);
+    }
 
     // TODO: Запись "БРОНЬ" в таблицу канала (hl_v) и в global_log
     console.log(`БРОНЬ: ${timeString}`);

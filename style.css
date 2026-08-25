@@ -741,29 +741,51 @@ body.dark-mode .scroll-nav button:hover {
 /* ========================================================
    🍏 СЕТКА ИНТЕРВАЛОВ И ТЕГИ (OP UI)
    ======================================================== */
+/* Новая просторная шапка */
+.mac-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 40px;
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Просторная сетка */
 .slots-grid {
     display: flex;
-    gap: 20px;
+    gap: 30px; /* Увеличили расстояние между колонками */
     justify-content: center;
-    max-width: 800px;
+    max-width: 750px;
     margin: 0 auto;
+    padding-bottom: 40px;
 }
 
 .slots-col {
     flex: 1;
+    min-width: 260px; /* Чтобы колонки не сжимались в сосиску */
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border-radius: 20px; /* Более мягкие углы */
+    padding: 25px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.04);
 }
 
 .slots-title {
     text-align: center;
     color: var(--primary);
     margin-top: 0;
-    margin-bottom: 20px;
-    font-size: 14px;
+    margin-bottom: 8px;
+    font-size: 15px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -771,19 +793,28 @@ body.dark-mode .scroll-nav button:hover {
 .slots-container {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     max-height: 60vh;
-    overflow-y: auto; /* Скролл, если слотов много */
-    padding-right: 5px;
+    overflow-y: auto; 
+    padding-right: 8px;
 }
 
+/* 🪄 МАГИЯ: Красивый macOS скроллбар вместо стандартного */
+.slots-container::-webkit-scrollbar { width: 6px; }
+.slots-container::-webkit-scrollbar-track { background: transparent; }
+.slots-container::-webkit-scrollbar-thumb {
+    background: rgba(150, 150, 150, 0.3);
+    border-radius: 10px;
+}
+.slots-container::-webkit-scrollbar-thumb:hover { background: rgba(150, 150, 150, 0.5); }
+
 .mac-slot {
-    padding: 12px;
+    padding: 14px 12px;
     text-align: center;
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 500;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     color: var(--text-main);
@@ -793,34 +824,35 @@ body.dark-mode .scroll-nav button:hover {
 .mac-slot:hover {
     border-color: var(--primary);
     background: rgba(230, 0, 126, 0.05);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(230, 0, 126, 0.1);
 }
 
-/* Состояние: занято другим оператором */
 .mac-slot.booked {
-    opacity: 0.4;
+    opacity: 0.35;
     border-style: dashed;
     cursor: not-allowed;
     pointer-events: none;
 }
 
-/* Состояние: занято мной */
 .mac-slot.my {
     border-color: #00aeef;
     color: #00aeef;
     background: rgba(0, 174, 239, 0.05);
     border-width: 2px;
+    transform: none;
+    box-shadow: none;
 }
 
-/* Тег выбранного слота в шапке */
 .my-tag {
     display: inline-flex;
     align-items: center;
-    padding: 8px 16px;
+    padding: 10px 20px;
     background: rgba(0, 174, 239, 0.1);
     border: 1px solid #00aeef;
-    border-radius: 20px;
+    border-radius: 25px;
     color: #00aeef;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0, 174, 239, 0.15);
 }

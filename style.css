@@ -864,14 +864,35 @@ body.dark-mode .scroll-nav button:hover {
 .my-tag {
     display: inline-flex;
     align-items: center;
-    padding: 10px 20px;
-    background: rgba(0, 174, 239, 0.1);
-    border: 1px solid #00aeef;
-    border-radius: 25px;
-    color: #00aeef;
+    padding: 8px 18px;
+    background: var(--bg-card); /* Умный фон, адаптируется под тему */
+    border: 1px solid var(--primary); /* Голубая окантовка */
+    border-radius: 20px;
+    color: var(--text-main); /* Умный текст, читается всегда */
     font-size: 14px;
-    font-weight: bold;
-    box-shadow: 0 4px 12px rgba(0, 174, 239, 0.15);
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Эффект при наведении (подсказывает, что можно кликнуть) */
+.my-tag:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 174, 239, 0.15);
+    background: rgba(0, 174, 239, 0.05);
+}
+
+/* Состояние ФИНИШ (перерыв использован) */
+.my-tag.finished {
+    border-color: #ff4d4d;
+    color: #ff4d4d;
+    background: rgba(255, 77, 77, 0.05);
+    text-decoration: line-through;
+    opacity: 0.7;
+    pointer-events: none; /* Отключаем повторные клики */
+    box-shadow: none;
+    transform: none;
 }
 
 /* ========================================================

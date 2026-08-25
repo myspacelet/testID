@@ -177,10 +177,22 @@ function handleSlotClick(element, type, timeString) {
     const tag = document.createElement('div');
     tag.className = 'my-tag';
     tag.innerText = timeString;
+    
+    // ДОБАВЛЯЕМ ЛОГИКУ КЛИКА (Уход на перерыв)
+    tag.onclick = function() {
+        if (confirm(`Выйти в перерыв? ${timeString}`)) {
+            // Если оператор нажал "ОК"
+            this.classList.add('finished');
+            
+            // TODO: Отправим запись "ФИНИШ" в global_log в базе Supabase
+            console.log(`ФИНИШ: ${timeString}`);
+        }
+    };
+
     tagsContainer.appendChild(tag);
 
-    // TODO: Запись в таблицу канала (hl_v) и в global_log
-    console.log(`Клик по слоту: ${timeString}`);
+    // TODO: Запись "БРОНЬ" в таблицу канала (hl_v) и в global_log
+    console.log(`БРОНЬ: ${timeString}`);
 }
 
 // Функция выхода

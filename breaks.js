@@ -95,34 +95,12 @@ const LIMITS = {
     lunches: 1
 };
 
-// Заглушки для выбранных слотов (потом будем брать из базы)
+// Счетчики выбранных слотов (пока локальные)
 let mySelectedBreaks = 0;
 let mySelectedLunches = 0;
 
-// Утилита: прибавляет минуты к времени "HH:MM"
-function addMinutes(timeStr, minsToAdd) {
-    let [h, m] = timeStr.split(':').map(Number);
-    m += minsToAdd;
-    h += Math.floor(m / 60);
-    m = m % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-
-// Генератор списка слотов
-function generateSlots(startTime, endTime, durationMins) {
-    let slots = [];
-    let current = startTime;
-    while (current < endTime) {
-        let next = addMinutes(current, durationMins);
-        if (next > endTime) break;
-        slots.push(`${current}-${next}`);
-        current = next;
-    }
-    return slots;
-}
-
-// Рендер интерфейса оператора
-function renderOperatorUI() {
+// Асинхронный рендер интерфейса оператора (качает слоты из БД)
+async function renderOperatorUI() {
     document.getElementById('op-dashboard').classList.remove('hide');
     document.getElementById('op-id-display').innerText = currentOperatorName;
     document.getElementById('op-channel-display').innerText = 
@@ -131,24 +109,55 @@ function renderOperatorUI() {
     const breaksContainer = document.getElementById('breaks-10-container');
     const lunchesContainer = document.getElementById('lunches-30-container');
 
-    // Генерируем с 08:00 до 19:30
-    const hlBreaks = generateSlots('08:00', '19:30', 10);
-    const hlLunches = generateSlots('08:00', '19:30', 30);
+    // Ставим индикатор загрузки, пока ждем ответ от Supabase
+    breaksContainer.innerHTML = '<div style="text-align:center; padding:15px; font-size:13px; color:var(--text-muted);">⏳ Загрузка...</div>';
+    lunchesContainer.innerHTML = '<div style="text-align:center; padding:15px; font-size:13px; color:var(--text-muted);">⏳ Загрузка...</div>';
 
-    // Отрисовываем перерывы
-    breaksContainer.innerHTML = hlBreaks.map(slot => `
-        <div class="mac-slot" onclick="handleSlotClick(this, 'break', '${slot}')">${slot}</div>
-    `).join('');
+    try {
+        // 1. Запрашиваем актуальный справочник интервалов для выбранного канала
+        const { data: intervals, error } = await supabaseClient
+            .from('intervals_config')
+            .select('type, time_slot')
+            .eq('channel', selectedChannel)
+            .order('time_slot', { ascending: true }); // Сортируем по времени (А-Я)
 
-    // Отрисовываем обеды
-    lunchesContainer.innerHTML = hlLunches.map(slot => `
-        <div class="mac-slot" onclick="handleSlotClick(this, 'lunch', '${slot}')">${slot}</div>
-    `).join('');
+        if (error) throw error;
+
+        // 2. Раскладываем полученные данные по двум массивам
+        const breaksList = intervals.filter(i => i.type === 'break10').map(i => i.time_slot);
+        const lunchesList = intervals.filter(i => i.type === 'lunch30').map(i => i.time_slot);
+
+        // TODO: Здесь мы позже добавим проверку таблицы бронирований (hl_v), чтобы делать слоты серыми
+
+        // 3. Отрисовываем ПЕРЕРЫВЫ
+        if (breaksList.length > 0) {
+            breaksContainer.innerHTML = breaksList.map(slot => `
+                <div class="mac-slot" onclick="handleSlotClick(this, 'break', '${slot}')">${slot}</div>
+            `).join('');
+        } else {
+            breaksContainer.innerHTML = '<div style="text-align:center; font-size:12px; color:var(--text-muted);">Нет доступных интервалов</div>';
+        }
+
+        // 4. Отрисовываем ОБЕДЫ
+        if (lunchesList.length > 0) {
+            lunchesContainer.innerHTML = lunchesList.map(slot => `
+                <div class="mac-slot" onclick="handleSlotClick(this, 'lunch', '${slot}')">${slot}</div>
+            `).join('');
+        } else {
+            lunchesContainer.innerHTML = '<div style="text-align:center; font-size:12px; color:var(--text-muted);">Нет доступных интервалов</div>';
+        }
+
+    } catch (err) {
+        console.error("Ошибка загрузки интервалов:", err);
+        breaksContainer.innerHTML = '<div style="color:var(--danger); text-align:center; font-size:12px;">Ошибка загрузки базы</div>';
+        lunchesContainer.innerHTML = '<div style="color:var(--danger); text-align:center; font-size:12px;">Ошибка загрузки базы</div>';
+    }
 }
 
 // Обработка клика по слоту (Проверка лимитов)
 function handleSlotClick(element, type, timeString) {
-    // Проверяем лимиты
+    if (element.classList.contains('booked') || element.classList.contains('my')) return;
+
     if (type === 'break' && mySelectedBreaks >= LIMITS.breaks) {
         alert("Вы достигли лимита: 4 перерыва.");
         return;
@@ -158,23 +167,20 @@ function handleSlotClick(element, type, timeString) {
         return;
     }
 
-    // Если всё ок - "бронируем" слот визуально
+    // Визуальная "бронь"
     element.classList.add('my');
-    element.onclick = null; // Отключаем повторный клик
 
-    // Увеличиваем счетчик
     if (type === 'break') mySelectedBreaks++;
     if (type === 'lunch') mySelectedLunches++;
 
-    // Добавляем тег наверх
     const tagsContainer = document.getElementById('my-booked-tags');
     const tag = document.createElement('div');
     tag.className = 'my-tag';
     tag.innerText = timeString;
     tagsContainer.appendChild(tag);
 
-    // TODO: Здесь будет отправка данных в Supabase (hl_v и global_log)
-    console.log(`Забронирован ${type}: ${timeString}`);
+    // TODO: Запись в таблицу канала (hl_v) и в global_log
+    console.log(`Клик по слоту: ${timeString}`);
 }
 
 // Функция выхода

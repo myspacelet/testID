@@ -113,18 +113,24 @@ window.addEventListener('DOMContentLoaded', async () => {
         if (mainUi) mainUi.classList.remove('hide');
     };
 
-    // Проверка сессии пользователя
+// Проверка сессии пользователя
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             const { data: profile, error } = await supabaseClient
                 .from('profiles')
-                .select('approved, full_name')
+                .select('approved, full_name, role') // 👈 ДОБАВИЛИ ROLE
                 .eq('id', session.user.id)
                 .single();
 
             if (!error && profile && profile.approved === true) {
-                // ПОЛЬЗОВАТЕЛЬ АВТОРИЗОВАН: просто скрываем всё окно загрузки
+                // 👈 МАРШРУТИЗАЦИЯ: Если это 'op', мгновенно кидаем в перерывы
+                if (profile.role === 'op') {
+                    window.location.href = 'breaks.html';
+                    return; 
+                }
+
+                // ПОЛЬЗОВАТЕЛЬ АВТОРИЗОВАН (admin или id): просто скрываем всё окно загрузки
                 const overlay = document.getElementById('auth-overlay');
                 if (overlay) overlay.style.display = 'none';
 
@@ -250,7 +256,7 @@ async function handleAuthSubmit() {
         const user = data.user;
         const { data: profile, error: profileError } = await supabaseClient
             .from('profiles')
-            .select('approved, full_name')
+            .select('approved, full_name, role') // 👈 ДОБАВИЛИ ЗАПРОС РОЛИ
             .eq('id', user.id)
             .single();
 
@@ -261,6 +267,13 @@ async function handleAuthSubmit() {
                 statusMsg.innerHTML = "🔒 Доступ ограничен. Администратор ещё не одобрил вашу заявку.";
             }
         } else {
+            // 👈 МАРШРУТИЗАЦИЯ: Если зашел оператор перерывов, мгновенно отправляем его по адресу
+            if (profile.role === 'op') {
+                window.location.href = 'breaks.html';
+                return;
+            }
+
+            // Для остальных (admin, id) продолжаем обычную загрузку ИД 2.0
             if (statusMsg) {
                 statusMsg.style.color = 'var(--success)';
                 statusMsg.innerHTML = '🚀 Доступ разрешен!';

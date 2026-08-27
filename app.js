@@ -56,7 +56,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             clearTimeout(debounceTimer); // Сбрасываем таймер при каждой новой букве
             
             // Если введено меньше 2 букв - скрываем список
-            if (query.length < 2) {
+            if (query.length < 4) {
                 suggestionsBox.classList.add('hide');
                 return;
             }

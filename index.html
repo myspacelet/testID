@@ -70,6 +70,12 @@
     <div class="top-navbar">
         <button id="btn-search-city" onclick="setSearchMode('city')" class="nav-btn active">🏙️ Поиск по городам</button>
         <button id="btn-search-code" onclick="setSearchMode('code')" class="nav-btn">🪪 Поиск по коду магазина</button>
+        
+        <!-- 🆕 КНОПКА ПЕРЕХОДА В ПЕРЕРЫВЫ (Скрыта по умолчанию) -->
+        <button id="btn-go-to-breaks" onclick="window.location.href='breaks.html'" class="nav-btn hide" style="background: rgba(0, 174, 239, 0.1); border: 1px solid rgba(0,174,239,0.4); color: #00aeef; font-weight: bold; margin-left: auto;">
+            ⏱️ Перерывы
+        </button>
+
         <button id="theme-toggle-btn" onclick="toggleTheme()" class="nav-btn" style="flex: 0 0 auto; width: 44px; padding: 10px 0; font-size: 16px;">🌙</button>
         <button onclick="handleLogout()" class="btn-logout" title="Выйти из системы">🚪 Выйти</button>
     </div>

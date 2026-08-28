@@ -138,7 +138,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     return; 
                 }
 
-                // ПОЛЬЗОВАТЕЛЬ АВТОРИЗОВАН (admin или id): просто скрываем всё окно загрузки
+        // ПОЛЬЗОВАТЕЛЬ АВТОРИЗОВАН (admin или id): просто скрываем всё окно загрузки
                 const overlay = document.getElementById('auth-overlay');
                 if (overlay) overlay.style.display = 'none';
 
@@ -148,6 +148,12 @@ window.addEventListener('DOMContentLoaded', async () => {
                     welcomeTitle.innerText = `🚌 Добро пожаловать, ${firstName}!`;
                     currentOperatorName = firstName;
                     updateAllOperatorInputs(firstName);
+                }
+
+                // 👑 ПОКАЗЫВАЕМ КНОПКУ ПЕРЕХОДА В ПЕРЕРЫВЫ ДЛЯ АДМИНА
+                if (profile.role === 'admin') {
+                    const btnGoToBreaks = document.getElementById('btn-go-to-breaks');
+                    if (btnGoToBreaks) btnGoToBreaks.classList.remove('hide');
                 }
             } else {
                 // Учетка есть, но не одобрена (или ошибка) -> разлогиниваем и показываем форму
@@ -291,7 +297,7 @@ async function handleAuthSubmit() {
                 return;
             }
 
-            // Для остальных (admin, id) продолжаем загрузку ИД 2.0
+            // Для остальных (admin, id) продолжаем обычную загрузку ИД 2.0
             if (statusMsg) {
                 statusMsg.style.color = 'var(--success)';
                 statusMsg.innerHTML = '🚀 Доступ разрешен!';
@@ -303,6 +309,12 @@ async function handleAuthSubmit() {
                 welcomeTitle.innerText = `🚌 Добро пожаловать, ${firstName}!`;
                 currentOperatorName = firstName;
                 updateAllOperatorInputs(firstName);
+            }
+
+            // 👑 ПОКАЗЫВАЕМ КНОПКУ ПЕРЕХОДА В ПЕРЕРЫВЫ ДЛЯ АДМИНА
+            if (profile.role === 'admin') {
+                const btnGoToBreaks = document.getElementById('btn-go-to-breaks');
+                if (btnGoToBreaks) btnGoToBreaks.classList.remove('hide');
             }
 
             setTimeout(() => { 

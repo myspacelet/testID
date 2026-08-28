@@ -201,6 +201,8 @@ async function renderOperatorUI() {
         mySelectedBreaks = activeBookings.filter(b => b.user_id === currentUser.id && breaksList.includes(b.time_slot)).length;
         mySelectedLunches = activeBookings.filter(b => b.user_id === currentUser.id && lunchesList.includes(b.time_slot)).length;
 
+        updateCounters();
+
         // 4. 🧠 ВОССТАНАВЛИВАЕМ ТЕГИ СВЕРХУ С КРЕСТИКАМИ
         const myBookings = activeBookings.filter(b => b.user_id === currentUser.id);
         myBookings.sort((a, b) => a.time_slot.localeCompare(b.time_slot)); // Сортируем по времени
@@ -290,6 +292,8 @@ async function handleSlotClick(element, type, timeString) {
 
         if (type === 'break') mySelectedBreaks++;
         if (type === 'lunch') mySelectedLunches++;
+
+        updateCounters();
 
         // Создаем тег сверху
         const tagsContainer = document.getElementById('my-booked-tags');

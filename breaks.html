@@ -98,13 +98,14 @@
 <!-- 👑 ПАНЕЛЬ АДМИНИСТРАТОРА -->
 <div id="admin-app" class="hide app-fullscreen-wrapper">
     <div class="mac-header">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <div style="font-weight: 800; color: #ff5f56; letter-spacing: 1px; font-size: 18px;">LETU ADMIN</div>
+        <div class="admin-header-left">
+            <div class="admin-logo">LETU ADMIN</div>
         </div>
         
         <div class="channel-display-title" style="color: #ff5f56;">МОНИТОРИНГ</div>
         
         <div class="header-actions-group">
+            <button id="admin-theme-btn" class="btn-theme-toggle" onclick="toggleTheme()">☀️</button>
             <button class="btn-back-channel" onclick="closeAdminPanel()">◀️ В меню</button>
             <button class="btn-mac-logout" onclick="logout()">🚪 ВЫЙТИ</button>
         </div>

@@ -1392,3 +1392,19 @@ body.dark-mode .btn-admin-action {
     background: transparent;
     border-color: var(--border-color);
 }
+
+/* ========================================================
+   👑 ШАПКА АДМИНКИ (ЧИСТЫЙ CSS)
+   ======================================================== */
+.admin-header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.admin-logo {
+    font-weight: 800;
+    color: #ff5f56;
+    letter-spacing: 1px;
+    font-size: 18px;
+}

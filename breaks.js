@@ -667,6 +667,13 @@ let currentAdminChannel = 'HL';
 function openAdminPanel() {
     document.getElementById('channel-screen').classList.add('hide');
     document.getElementById('admin-app').classList.remove('hide');
+    
+    // Синхронизируем иконку темы при входе в админку
+    const adminThemeBtn = document.getElementById('admin-theme-btn');
+    if (adminThemeBtn) {
+        adminThemeBtn.innerText = document.body.classList.contains('dark-mode') ? '🌙' : '☀️';
+    }
+
     loadAdminMonitor('HL'); // По умолчанию грузим Горячую линию
 }
 

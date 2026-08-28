@@ -119,11 +119,11 @@ window.addEventListener('DOMContentLoaded', async () => {
         if (session) {
             const { data: profile, error } = await supabaseClient
                 .from('profiles')
-                .select('approved, full_name, role') // 👈 ДОБАВИЛИ ROLE
+                .select('is_confirmed, full_name, role') 
                 .eq('id', session.user.id)
                 .single();
 
-            if (!error && profile && profile.approved === true) {
+            if (!error && profile && profile.is_confirmed === true) {
                 // 🛑 НОВАЯ ЖЕСТКАЯ ПРОВЕРКА РОЛИ
                 if (!profile.role || !['op', 'id', 'admin'].includes(profile.role)) {
                     await supabaseClient.auth.signOut();
@@ -488,6 +488,22 @@ function toggleTheme() {
     document.getElementById('theme-toggle-btn').innerText = isDark ? '☀️' : '🌙';
     localStorage.setItem('app-theme', isDark ? 'dark' : 'light');
 }
+
+// 🌓 ВОССТАНОВЛЕНИЕ ТЕМЫ ПРИ ЗАГРУЗКЕ
+const savedAppTheme = localStorage.getItem('app-theme');
+if (savedAppTheme === 'dark') {
+    document.body.classList.add('dark-mode');
+} else if (savedAppTheme === 'light') {
+    document.body.classList.remove('dark-mode');
+}
+
+// Синхронизация иконки кнопки темы после загрузки DOM
+window.addEventListener('DOMContentLoaded', () => {
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+        themeBtn.innerText = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+    }
+});
 
 function setSearchMode(mode) {
     currentSearchMode = mode;

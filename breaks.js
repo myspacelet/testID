@@ -119,53 +119,66 @@ async function renderOperatorUI() {
     const breaksContainer = document.getElementById('breaks-10-container');
     const lunchesContainer = document.getElementById('lunches-30-container');
 
-    // Ставим индикатор загрузки, пока ждем ответ от Supabase
     breaksContainer.innerHTML = '<div style="text-align:center; padding:15px; font-size:13px; color:var(--text-muted);">⏳ Загрузка...</div>';
     lunchesContainer.innerHTML = '<div style="text-align:center; padding:15px; font-size:13px; color:var(--text-muted);">⏳ Загрузка...</div>';
 
     try {
-        // 1. Запрашиваем актуальный справочник интервалов для выбранного канала
+        // 1. Запрашиваем справочник интервалов
         const { data: intervals, error } = await supabaseClient
             .from('intervals_config')
             .select('type, time_slot')
             .eq('channel', selectedChannel)
-            .order('time_slot', { ascending: true }); // Сортируем по времени (А-Я)
+            .order('time_slot', { ascending: true });
 
         if (error) throw error;
 
-        // 2. Раскладываем полученные данные по двум массивам
+        // 2. 🧠 НОВОЕ: Запрашиваем занятые слоты из базы
+        const { data: activeBookings, error: bookingsError } = await supabaseClient
+            .from('active_breaks')
+            .select('*')
+            .eq('channel', selectedChannel);
+
+        if (bookingsError) throw bookingsError;
+
         const breaksList = intervals.filter(i => i.type === 'break10').map(i => i.time_slot);
         const lunchesList = intervals.filter(i => i.type === 'lunch30').map(i => i.time_slot);
 
-        // TODO: Здесь мы позже добавим проверку таблицы бронирований (hl_v), чтобы делать слоты серыми
+        // Вспомогательная функция для сборки HTML кнопки
+        const buildSlotHTML = (slot, type) => {
+            const booking = activeBookings.find(b => b.time_slot === slot);
+            if (booking) {
+                if (booking.user_id === currentUser.id) {
+                    return `<div class="mac-slot my" onclick="handleSlotClick(this, '${type}', '${slot}')">${slot}</div>`;
+                } else {
+                    return `<div class="mac-slot booked" title="Занято: ${booking.operator_name}">${slot}</div>`;
+                }
+            }
+            return `<div class="mac-slot" onclick="handleSlotClick(this, '${type}', '${slot}')">${slot}</div>`;
+        };
 
         // 3. Отрисовываем ПЕРЕРЫВЫ
-        if (breaksList.length > 0) {
-            breaksContainer.innerHTML = breaksList.map(slot => `
-                <div class="mac-slot" onclick="handleSlotClick(this, 'break', '${slot}')">${slot}</div>
-            `).join('');
-        } else {
-            breaksContainer.innerHTML = '<div style="text-align:center; font-size:12px; color:var(--text-muted);">Нет доступных интервалов</div>';
-        }
+        breaksContainer.innerHTML = breaksList.length > 0 
+            ? breaksList.map(slot => buildSlotHTML(slot, 'break')).join('') 
+            : '<div style="text-align:center; font-size:12px; color:var(--text-muted);">Нет доступных интервалов</div>';
 
         // 4. Отрисовываем ОБЕДЫ
-        if (lunchesList.length > 0) {
-            lunchesContainer.innerHTML = lunchesList.map(slot => `
-                <div class="mac-slot" onclick="handleSlotClick(this, 'lunch', '${slot}')">${slot}</div>
-            `).join('');
-        } else {
-            lunchesContainer.innerHTML = '<div style="text-align:center; font-size:12px; color:var(--text-muted);">Нет доступных интервалов</div>';
-        }
+        lunchesContainer.innerHTML = lunchesList.length > 0 
+            ? lunchesList.map(slot => buildSlotHTML(slot, 'lunch')).join('') 
+            : '<div style="text-align:center; font-size:12px; color:var(--text-muted);">Нет доступных интервалов</div>';
+
+        // Восстанавливаем счетчики лимитов, если оператор обновил страницу (F5)
+        mySelectedBreaks = activeBookings.filter(b => b.user_id === currentUser.id && breaksList.includes(b.time_slot)).length;
+        mySelectedLunches = activeBookings.filter(b => b.user_id === currentUser.id && lunchesList.includes(b.time_slot)).length;
 
     } catch (err) {
         console.error("Ошибка загрузки интервалов:", err);
-        breaksContainer.innerHTML = '<div style="color:var(--danger); text-align:center; font-size:12px;">Ошибка загрузки базы</div>';
-        lunchesContainer.innerHTML = '<div style="color:var(--danger); text-align:center; font-size:12px;">Ошибка загрузки базы</div>';
+        breaksContainer.innerHTML = '<div style="color:var(--danger); text-align:center; font-size:12px;">Ошибка базы</div>';
+        lunchesContainer.innerHTML = '<div style="color:var(--danger); text-align:center; font-size:12px;">Ошибка базы</div>';
     }
 }
 
-// Обработка клика по слоту (Проверка лимитов)
-function handleSlotClick(element, type, timeString) {
+// Обработка клика по слоту (Отправка в Supabase)
+async function handleSlotClick(element, type, timeString) {
     if (element.classList.contains('booked') || element.classList.contains('my')) return;
 
     if (type === 'break' && mySelectedBreaks >= LIMITS.breaks) {
@@ -177,45 +190,90 @@ function handleSlotClick(element, type, timeString) {
         return;
     }
 
-    // Визуальная "бронь"
-    element.classList.add('my');
+    // ⏳ Блокируем кнопку на время общения с базой
+    element.style.pointerEvents = 'none';
+    element.innerText = '⏳';
+    element.style.opacity = '0.6';
 
-    if (type === 'break') mySelectedBreaks++;
-    if (type === 'lunch') mySelectedLunches++;
+    try {
+        // 1. Занимаем слот в таблице active_breaks
+        const { error: insertError } = await supabaseClient
+            .from('active_breaks')
+            .insert([{
+                operator_name: currentOperatorName,
+                channel: selectedChannel,
+                time_slot: timeString,
+                user_id: currentUser.id
+            }]);
 
-    const tagsContainer = document.getElementById('my-booked-tags');
-    const tag = document.createElement('div');
-    tag.className = 'my-tag';
-    tag.innerText = timeString;
-    
-    // ДОБАВЛЯЕМ ЛОГИКУ КЛИКА (Уход на перерыв)
-    tag.onclick = function() {
-        if (confirm(`Выйти в перерыв? ${timeString}`)) {
-            // Если оператор нажал "ОК"
-            this.classList.add('finished');
-            
-            // TODO: Отправим запись "ФИНИШ" в global_log в базе Supabase
-            console.log(`ФИНИШ: ${timeString}`);
+        if (insertError) throw insertError;
+
+        // 2. Пишем исторический факт в global_log
+        await supabaseClient
+            .from('global_log')
+            .insert([{
+                operator_name: currentOperatorName,
+                channel: selectedChannel,
+                action: 'БРОНЬ',
+                time_slot: timeString,
+                user_id: currentUser.id
+            }]);
+
+        // ✅ Успех! Окрашиваем кнопку
+        element.classList.add('my');
+        element.innerText = timeString;
+        element.style.pointerEvents = 'auto';
+        element.style.opacity = '1';
+
+        if (type === 'break') mySelectedBreaks++;
+        if (type === 'lunch') mySelectedLunches++;
+
+        // Создаем тег сверху
+        const tagsContainer = document.getElementById('my-booked-tags');
+        const tag = document.createElement('div');
+        tag.className = 'my-tag';
+        tag.innerText = timeString;
+        
+        // ЛОГИКА "ФИНИША"
+        tag.onclick = async function() {
+            if (this.classList.contains('finished')) return; // защита от двойного клика
+
+            if (confirm(`Выйти в перерыв? ${timeString}`)) {
+                this.classList.add('finished');
+                
+                // Отправляем ФИНИШ в вечный лог
+                await supabaseClient
+                    .from('global_log')
+                    .insert([{
+                        operator_name: currentOperatorName,
+                        channel: selectedChannel,
+                        action: 'ФИНИШ',
+                        time_slot: timeString,
+                        user_id: currentUser.id
+                    }]);
+                
+                console.log(`✅ ФИНИШ записан: ${timeString}`);
+            }
+        };
+
+        // 🧠 УМНАЯ СОРТИРОВКА ТЕГОВ
+        const existingTags = Array.from(tagsContainer.children);
+        const nextNode = existingTags.find(t => t.innerText > timeString);
+
+        if (nextNode) {
+            tagsContainer.insertBefore(tag, nextNode);
+        } else {
+            tagsContainer.appendChild(tag);
         }
-    };
 
-    // 🧠 УМНАЯ СОРТИРОВКА
-    // Превращаем все текущие теги в массив
-    const existingTags = Array.from(tagsContainer.children);
-    
-    // Ищем первый тег, у которого время ПОЗЖЕ, чем то, которое мы сейчас кликнули
-    const nextNode = existingTags.find(t => t.innerText > timeString);
-
-    if (nextNode) {
-        // Если нашли такой тег — вставляем наш НОВЫЙ тег ровно ПЕРЕД ним
-        tagsContainer.insertBefore(tag, nextNode);
-    } else {
-        // Если таких нет (наше время самое позднее) — просто кидаем в конец
-        tagsContainer.appendChild(tag);
+    } catch (err) {
+        console.error(err);
+        alert("❌ Слот уже занят или произошла ошибка соединения!");
+        // Возвращаем кнопку в исходное состояние, если база отказала
+        element.innerText = timeString;
+        element.style.pointerEvents = 'auto';
+        element.style.opacity = '1';
     }
-
-    // TODO: Запись "БРОНЬ" в таблицу канала (hl_v) и в global_log
-    console.log(`БРОНЬ: ${timeString}`);
 }
 
 // Функция выхода

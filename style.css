@@ -1324,3 +1324,71 @@ body.dark-mode .scroll-nav button:hover {
     50% { box-shadow: 0 0 15px rgba(236, 72, 153, 0.6); }
     100% { box-shadow: 0 0 5px rgba(236, 72, 153, 0.2); }
 }
+
+/* ========================================================
+   👑 СТИЛИЗАЦИЯ ПАНЕЛИ АДМИНА (ПЛОТНЫЕ ОКНА)
+   ======================================================== */
+
+/* Верхняя панель управления и доска мониторинга в светлой теме */
+.admin-controls-card,
+.admin-monitor-board {
+    background: #ffffff; /* Плотный белый фон для светлой темы */
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 
+                0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Строки внутри доски мониторинга */
+.monitor-row {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.monitor-row:hover {
+    background: rgba(0, 0, 0, 0.015); /* Легкий подсвет строки при наведении */
+}
+
+/* Вкладки и кнопки в шапке админки */
+.admin-tab {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text-muted);
+}
+
+.admin-tab:hover {
+    background: rgba(0, 0, 0, 0.07);
+    color: var(--text-main);
+}
+
+.btn-admin-action {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.btn-admin-action:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+/* 🌙 ТЕМНАЯ ТЕМА ДЛЯ АДМИНКИ */
+body.dark-mode .admin-controls-card,
+body.dark-mode .admin-monitor-board {
+    background: var(--bg-secondary, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 
+                0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-mode .monitor-row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+body.dark-mode .monitor-row:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+body.dark-mode .admin-tab {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .btn-admin-action {
+    background: transparent;
+    border-color: var(--border-color);
+}

@@ -621,40 +621,46 @@ function startSearch() {
         if (cityPassesFilter) {
             let cityShopsWithStock = [];
             cityData.allShopsInCity.forEach(code => {
-                let maxStockInShop = 0;
+                let isExact = true;
+                let totalStockInShop = 0; // Считаем общее количество штук
+                let positionsFound = 0;   // Считаем количество найденных позиций (артикулов)
+
                 activeLists.forEach(item => {
-                    if (item.storesMap.has(code)) maxStockInShop = Math.max(maxStockInShop, item.storesMap.get(code));
+                    const stock = item.storesMap.has(code) ? item.storesMap.get(code) : 0;
+                    
+                    if (stock < item.requiredStock) {
+                        isExact = false; 
+                    }
+                    
+                    if (stock > 0) {
+                        totalStockInShop += stock;
+                        positionsFound++;
+                    }
                 });
-                if (maxStockInShop > 0) cityShopsWithStock.push({ code, sortStock: maxStockInShop });
+
+                // Если в магазине есть хоть что-то, добавляем его в список
+                if (totalStockInShop > 0) {
+                    cityShopsWithStock.push({ 
+                        code, 
+                        // Для точных даем огромный приоритет, остальные сортируем по кол-ву найденных позиций и штук
+                        sortStock: isExact ? 100000 + totalStockInShop : (positionsFound * 1000) + totalStockInShop, 
+                        totalStock: totalStockInShop,
+                        positionsFound: positionsFound,
+                        isExact: isExact
+                    });
+                }
             });
 
+            // Сортируем и берем топ-3
             cityShopsWithStock.sort((a, b) => b.sortStock - a.sortStock);
             const top3Shops = cityShopsWithStock.slice(0, 3);
 
-            top3Shops.forEach((shop, index) => {
-                let minStockForBadge = Infinity;
-                let isExactStore = true; // 🧠 Начинаем с предположения, что магазин содержит ВСЕ товары
-
-                activeLists.forEach(item => {
-                    if (item.storesMap.has(shop.code)) {
-                        let currentStock = item.storesMap.get(shop.code);
-                        // Проверяем, хватает ли нужного количества именно в этом магазине
-                        if (currentStock < item.requiredStock) {
-                            isExactStore = false; 
-                        }
-                        minStockForBadge = Math.min(minStockForBadge, currentStock);
-                    } else {
-                        // Если хотя бы одного товара в магазине НЕТ — он вылетает из "точных"
-                        isExactStore = false;
-                    }
-                });
-                
-                if (minStockForBadge === Infinity) minStockForBadge = shop.sortStock;
-
+            top3Shops.forEach((shop) => {
                 finalMatches.push({ 
                     code: shop.code, 
-                    stock: minStockForBadge, 
-                    isExact: isExactStore, // 👈 Теперь тут работает честная математика
+                    stock: shop.totalStock,           // Передаем общую сумму штук
+                    positionsFound: shop.positionsFound, // Передаем сколько позиций нашли
+                    isExact: shop.isExact, 
                     softCityKey: cityName 
                 });
             });
@@ -707,7 +713,19 @@ function renderResults(storesArray) {
             top3Stores.forEach(store => {
                 const exactClass = store.isExact ? ' exact-badge' : '';
                 const isSelectedClass = (selectedStoreCode === store.code) ? ' active-selected-store' : '';
-                badgesHtml += `<button class="store-badge${exactClass}${isSelectedClass}" onclick="openStoreCard('${store.code}')">${store.code} (${store.stock} шт)</button>`;
+                
+                // УМНЫЙ ТЕКСТ ДЛЯ КНОПОК
+                let stockLabel = '';
+                if (store.isExact) {
+                    // Если точный магазин - просто выводим общую сумму
+                    stockLabel = `(${store.stock} шт)`;
+                } else {
+                    // Если частичный - выводим "X/Y поз. (Z шт)"
+                    const totalRequestedPositions = activeLists.length;
+                    stockLabel = `(${store.positionsFound}/${totalRequestedPositions} поз. - ${store.stock} шт)`;
+                }
+
+                badgesHtml += `<button class="store-badge${exactClass}${isSelectedClass}" onclick="openStoreCard('${store.code}')">${store.code} <span style="font-size: 0.9em; opacity: 0.85;">${stockLabel}</span></button>`;
             });
 
             const titleHtml = (currentSearchMode === 'city')

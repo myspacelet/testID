@@ -189,6 +189,12 @@
             <button class="modal-close" onclick="closeAccountsModal(null)">×</button>
         </div>
 
+        <!-- 🔍 ПОИСК ПО ОПЕРАТОРАМ -->
+        <div class="mac-search-wrapper" style="margin-bottom: 15px;">
+            <input type="text" id="acc-search-input" class="mac-search-input" placeholder="Поиск по имени..." oninput="filterAccountsSearch()" autocomplete="off">
+            <button type="button" class="mac-search-clear" id="acc-search-clear" onclick="clearAccountsSearch()">✕</button>
+        </div>
+
         <!-- Фильтры статусов -->
         <div class="admin-tabs" style="margin-bottom: 15px;">
             <button id="acc-tab-all" class="admin-tab active" onclick="setAccountsFilter('all')">Все</button>

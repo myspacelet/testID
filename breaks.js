@@ -1035,14 +1035,40 @@ function setAccountsFilter(filter) {
     renderAccounts();
 }
 
+// 🔍 Новые функции для работы инпута поиска
+function filterAccountsSearch() {
+    renderAccounts();
+}
+
+function clearAccountsSearch() {
+    const searchInput = document.getElementById('acc-search-input');
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+    }
+    renderAccounts();
+}
+
 function renderAccounts() {
     const container = document.getElementById('accounts-list-container');
+    const searchQuery = (document.getElementById('acc-search-input')?.value || '').trim().toLowerCase();
+    
+    // Прячем или показываем крестик очистки поиска
+    const clearBtn = document.getElementById('acc-search-clear');
+    if (clearBtn) clearBtn.style.opacity = searchQuery.length > 0 ? '1' : '0';
     
     let filtered = allAccountsData;
+    
+    // 1. Сначала фильтруем по статусу (вкладки)
     if (currentAccountsFilter === 'confirmed') {
-        filtered = allAccountsData.filter(u => u.is_confirmed === true);
+        filtered = filtered.filter(u => u.is_confirmed === true);
     } else if (currentAccountsFilter === 'pending') {
-        filtered = allAccountsData.filter(u => !u.is_confirmed);
+        filtered = filtered.filter(u => !u.is_confirmed);
+    }
+
+    // 2. Затем фильтруем по тексту поиска (живой поиск)
+    if (searchQuery) {
+        filtered = filtered.filter(u => (u.full_name || '').toLowerCase().includes(searchQuery));
     }
 
     if (filtered.length === 0) {

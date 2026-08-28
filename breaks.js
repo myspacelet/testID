@@ -44,8 +44,15 @@ window.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        currentRole = profile.role || 'op';
+        currentRole = profile.role; // Убрали заглушку || 'op'
         currentOperatorName = profile.full_name || 'Оператор';
+
+        // 🛑 ЖЕСТКАЯ ПРОВЕРКА: Если роли вообще нет или она кривая - на выход
+        if (!currentRole || !['op', 'id', 'admin'].includes(currentRole)) {
+            await supabaseClient.auth.signOut();
+            window.location.href = 'index.html';
+            return;
+        }
 
         // 3. ЖЕСТКАЯ МАРШРУТИЗАЦИЯ (RBAC)
         if (currentRole === 'id') {

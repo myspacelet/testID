@@ -124,6 +124,14 @@ window.addEventListener('DOMContentLoaded', async () => {
                 .single();
 
             if (!error && profile && profile.approved === true) {
+                // 🛑 НОВАЯ ЖЕСТКАЯ ПРОВЕРКА РОЛИ
+                if (!profile.role || !['op', 'id', 'admin'].includes(profile.role)) {
+                    await supabaseClient.auth.signOut();
+                    alert("Доступ запрещен: Ваша роль не определена в системе. Обратитесь к администратору.");
+                    showLoginUI();
+                    return; 
+                }
+
                 // 👈 МАРШРУТИЗАЦИЯ: Если это 'op', мгновенно кидаем в перерывы
                 if (profile.role === 'op') {
                     window.location.href = 'breaks.html';
@@ -267,13 +275,23 @@ async function handleAuthSubmit() {
                 statusMsg.innerHTML = "🔒 Доступ ограничен. Администратор ещё не одобрил вашу заявку.";
             }
         } else {
-            // 👈 МАРШРУТИЗАЦИЯ: Если зашел оператор перерывов, мгновенно отправляем его по адресу
+            // 🛑 НОВАЯ ЖЕСТКАЯ ПРОВЕРКА РОЛИ
+            if (!profile.role || !['op', 'id', 'admin'].includes(profile.role)) {
+                await supabaseClient.auth.signOut();
+                if (statusMsg) {
+                    statusMsg.style.color = 'var(--danger)';
+                    statusMsg.innerHTML = "🔒 Доступ запрещен: Ваша роль не определена.";
+                }
+                return;
+            }
+
+            // 👈 МАРШРУТИЗАЦИЯ
             if (profile.role === 'op') {
                 window.location.href = 'breaks.html';
                 return;
             }
 
-            // Для остальных (admin, id) продолжаем обычную загрузку ИД 2.0
+            // Для остальных (admin, id) продолжаем загрузку ИД 2.0
             if (statusMsg) {
                 statusMsg.style.color = 'var(--success)';
                 statusMsg.innerHTML = '🚀 Доступ разрешен!';

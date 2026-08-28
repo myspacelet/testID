@@ -305,7 +305,7 @@ async function handleSlotClick(element, type, timeString) {
 
         updateCounters();
 
-        // Создаем тег сверху
+       // Создаем тег сверху
         const tagsContainer = document.getElementById('my-booked-tags');
         const tag = document.createElement('div');
         tag.className = 'my-tag';
@@ -322,31 +322,9 @@ async function handleSlotClick(element, type, timeString) {
         closeBtn.onclick = (e) => { e.stopPropagation(); cancelBooking(tag, timeString); };
         tag.appendChild(closeBtn);
 
-        // Клик по самому тегу
+        // Клик по самому тегу (Запускает finishBreak)
         tag.onclick = (e) => { if(e.target !== closeBtn) finishBreak(tag, timeString); };
         
-        // ЛОГИКА "ФИНИША"
-        tag.onclick = async function() {
-            if (this.classList.contains('finished')) return; // защита от двойного клика
-
-            if (confirm(`Выйти в перерыв? ${timeString}`)) {
-                this.classList.add('finished');
-                
-                // Отправляем ФИНИШ в вечный лог
-                await supabaseClient
-                    .from('global_log')
-                    .insert([{
-                        operator_name: currentOperatorName,
-                        channel: selectedChannel,
-                        action: 'ФИНИШ',
-                        time_slot: timeString,
-                        user_id: currentUser.id
-                    }]);
-                
-                console.log(`✅ ФИНИШ записан: ${timeString}`);
-            }
-        };
-
         // 🧠 УМНАЯ СОРТИРОВКА ТЕГОВ
         const existingTags = Array.from(tagsContainer.children);
         const nextNode = existingTags.find(t => t.innerText > timeString);
@@ -613,8 +591,10 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
     const overlay = document.getElementById('fullscreen-timer-overlay');
     const bigTimeDisplay = document.getElementById('big-timer-time');
     const bigSlotDisplay = document.getElementById('big-timer-slot');
+    const btnEndEarly = document.getElementById('btn-end-timer-early'); // 👈 Новая кнопка
     
     let targetTime;
+    let intervalId; // 👈 Вынесли переменную наверх, чтобы избежать ошибки ReferenceError
 
     if (isRestore && localStorage.getItem(storageKey)) {
         targetTime = parseInt(localStorage.getItem(storageKey), 10);
@@ -628,7 +608,7 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
     tagElement.style.background = 'rgba(0, 174, 239, 0.15)';
     tagElement.style.border = '1px solid #00aeef';
 
-    // Включаем оверлей и задаем ему интервал
+    // Включаем оверлей
     bigSlotDisplay.innerText = timeString;
     overlay.classList.remove('hide');
 
@@ -646,23 +626,30 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
             tagElement.style.border = '1px solid var(--border-color)';
             tagElement.style.color = 'var(--text-muted)';
             
-            // Прячем оверлей, разблокируя интерфейс
+            // Прячем оверлей
             overlay.classList.add('hide');
         } else {
-            // ТАЙМЕР ИДЕТ: Считаем минуты и секунды
+            // ТАЙМЕР ИДЕТ
             const minutes = Math.floor(remaining / 60000);
             const seconds = Math.floor((remaining % 60000) / 1000);
             const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
             
-            // Обновляем сразу и там, и там
             textSpan.innerText = `${timeString} ⏳ ${formattedTime}`;
             bigTimeDisplay.innerText = formattedTime;
         }
     };
 
-    // Вызываем сразу 1 раз, чтобы на экране не висело "00:00" целую секунду перед стартом
+    // Привязываем досрочное завершение
+    btnEndEarly.onclick = () => {
+        if (confirm('Завершить перерыв досрочно?')) {
+            targetTime = 0; // Принудительно обнуляем время
+            updateDisplays(); // Вызываем немедленную проверку, которая всё закроет и очистит
+        }
+    };
+
+    // Вызываем сразу 1 раз
     updateDisplays(); 
     
-    // И запускаем цикл
-    const intervalId = setInterval(updateDisplays, 1000);
+    // И запускаем цикл (теперь intervalId присваивается безопасно)
+    intervalId = setInterval(updateDisplays, 1000);
 }

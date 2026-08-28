@@ -855,6 +855,7 @@ body.dark-mode .scroll-nav button:hover {
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+    position: relative;
     transition: all 0.2s ease;
     color: var(--text-main);
     background: var(--bg-main);
@@ -874,6 +875,8 @@ body.dark-mode .scroll-nav button:hover {
     pointer-events: none;
 }
 
+.mac-slot:hover,
+
 .mac-slot.my {
     border-color: #00aeef;
     color: #00aeef;
@@ -881,6 +884,7 @@ body.dark-mode .scroll-nav button:hover {
     border-width: 2px;
     transform: none;
     box-shadow: none;
+    z-index: 10;
 }
 
 .my-tag {

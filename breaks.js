@@ -151,7 +151,7 @@ async function renderOperatorUI() {
     document.getElementById('op-dashboard').classList.remove('hide');
     document.getElementById('op-id-display').innerText = currentOperatorName;
     document.getElementById('op-channel-display').innerText = 
-        selectedChannel === 'HL' ? 'ГОРЯЧАЯ ЛИНИЯ' : (selectedChannel === 'LIVE' ? 'ЧАТ LIVETEX' : 'ЧАТ НОЧЬ');
+        selectedChannel === 'HL' ? 'ГОРЯЧАЯ ЛИНИЯ' : (selectedChannel === 'LIVE' ? 'ЧАТ LIVETEX' : 'ЧАТ LIVETEX НОЧЬ');
 
     const gridContainer = document.getElementById('dynamic-slots-grid');
     const tagsContainer = document.getElementById('my-booked-tags');

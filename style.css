@@ -779,15 +779,29 @@ body.dark-mode .scroll-nav button:hover {
 }
 
 .slots-col {
-    flex: 1;
-    min-width: 260px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 25px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.04);
-    display: flex;           /* Делаем колонку flex-контейнером */
-    flex-direction: column;  /* Элементы друг под другом */
+    min-width: 340px; /* 👈 Делаем блоки солиднее и шире (было наверняка меньше) */
+    flex: 1; /* Позволяет колонкам равномерно заполнять пространство */
+    max-width: 400px; /* Ограничитель, чтобы они не разъезжались слишком сильно на огромных мониторах */
+    
+    padding: 24px 20px; /* Чуть больше «воздуха» внутри блока */
+    border-radius: 16px;
+    background: var(--bg-secondary, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+    
+    /* 🧠 НОВАЯ ТЕНЬ: Многослойная, глубокая, в стиле macOS */
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 
+                0 4px 12px rgba(0, 0, 0, 0.2);
+    
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+/* Эффект "левитации" при наведении (опционально, но выглядит круто) */
+.slots-col:hover {
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 
+                0 6px 16px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px); /* Блок слегка приподнимается */
 }
 
 .slots-title {

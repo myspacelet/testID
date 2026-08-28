@@ -865,6 +865,8 @@ body.dark-mode .scroll-nav button:hover {
 .my-tag {
     display: inline-flex;
     align-items: center;
+    gap: 8px; /* Отступ между временем и крестиком */
+    padding: 8px 14px 8px 18px; /* Чуть меняем паддинг для симметрии */
     padding: 8px 18px;
     background: var(--bg-card); /* Умный фон, адаптируется под тему */
     border: 1px solid var(--primary); /* Голубая окантовка */
@@ -875,6 +877,36 @@ body.dark-mode .scroll-nav button:hover {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+/* 🍎 Кнопка отмены в стиле macOS (появляется внутри тега) */
+.tag-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(130, 130, 140, 0.2);
+    color: var(--text-main);
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+/* Ховер - загорается красным */
+.tag-close-btn:hover {
+    background: #ff5f56; /* Классический красный macOS */
+    color: #fff;
+    transform: scale(1.1);
+}
+
+/* 🪄 МАГИЯ: Если перерыв отгулян (ФИНИШ), крестик просто исчезает */
+.my-tag.finished .tag-close-btn {
+    display: none;
 }
 
 /* Эффект при наведении (подсказывает, что можно кликнуть) */

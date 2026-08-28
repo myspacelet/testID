@@ -118,9 +118,11 @@ async function renderOperatorUI() {
 
     const breaksContainer = document.getElementById('breaks-10-container');
     const lunchesContainer = document.getElementById('lunches-30-container');
+    const tagsContainer = document.getElementById('my-booked-tags'); // 👈 Добавили контейнер для тегов
 
     breaksContainer.innerHTML = '<div style="text-align:center; padding:15px; font-size:13px; color:var(--text-muted);">⏳ Загрузка...</div>';
     lunchesContainer.innerHTML = '<div style="text-align:center; padding:15px; font-size:13px; color:var(--text-muted);">⏳ Загрузка...</div>';
+    tagsContainer.innerHTML = ''; // 👈 Обязательно очищаем старые теги перед загрузкой
 
     try {
         // 1. Запрашиваем справочник интервалов
@@ -132,7 +134,7 @@ async function renderOperatorUI() {
 
         if (error) throw error;
 
-        // 2. 🧠 НОВОЕ: Запрашиваем занятые слоты из базы
+        // 2. Запрашиваем занятые слоты из базы
         const { data: activeBookings, error: bookingsError } = await supabaseClient
             .from('active_breaks')
             .select('*')
@@ -140,10 +142,21 @@ async function renderOperatorUI() {
 
         if (bookingsError) throw bookingsError;
 
+        // 3. 🧠 Узнаем, какие слоты мы уже отгуляли (ищем ФИНИШ в истории)
+        const { data: finishLogs, error: logsError } = await supabaseClient
+            .from('global_log')
+            .select('time_slot')
+            .eq('channel', selectedChannel)
+            .eq('user_id', currentUser.id)
+            .eq('action', 'ФИНИШ');
+            
+        // Создаем массив уже отгулянных перерывов (например: ["10:00-10:10", "12:00-12:10"])
+        const finishedSlots = finishLogs ? finishLogs.map(l => l.time_slot) : [];
+
         const breaksList = intervals.filter(i => i.type === 'break10').map(i => i.time_slot);
         const lunchesList = intervals.filter(i => i.type === 'lunch30').map(i => i.time_slot);
 
-        // Вспомогательная функция для сборки HTML кнопки
+        // Вспомогательная функция для сборки HTML кнопки слота
         const buildSlotHTML = (slot, type) => {
             const booking = activeBookings.find(b => b.time_slot === slot);
             if (booking) {
@@ -156,19 +169,51 @@ async function renderOperatorUI() {
             return `<div class="mac-slot" onclick="handleSlotClick(this, '${type}', '${slot}')">${slot}</div>`;
         };
 
-        // 3. Отрисовываем ПЕРЕРЫВЫ
+        // Отрисовываем ПЕРЕРЫВЫ
         breaksContainer.innerHTML = breaksList.length > 0 
             ? breaksList.map(slot => buildSlotHTML(slot, 'break')).join('') 
             : '<div style="text-align:center; font-size:12px; color:var(--text-muted);">Нет доступных интервалов</div>';
 
-        // 4. Отрисовываем ОБЕДЫ
+        // Отрисовываем ОБЕДЫ
         lunchesContainer.innerHTML = lunchesList.length > 0 
             ? lunchesList.map(slot => buildSlotHTML(slot, 'lunch')).join('') 
             : '<div style="text-align:center; font-size:12px; color:var(--text-muted);">Нет доступных интервалов</div>';
 
-        // Восстанавливаем счетчики лимитов, если оператор обновил страницу (F5)
+        // Восстанавливаем счетчики лимитов
         mySelectedBreaks = activeBookings.filter(b => b.user_id === currentUser.id && breaksList.includes(b.time_slot)).length;
         mySelectedLunches = activeBookings.filter(b => b.user_id === currentUser.id && lunchesList.includes(b.time_slot)).length;
+
+        // 4. 🧠 ВОССТАНАВЛИВАЕМ ТЕГИ СВЕРХУ С КРЕСТИКАМИ
+        const myBookings = activeBookings.filter(b => b.user_id === currentUser.id);
+        myBookings.sort((a, b) => a.time_slot.localeCompare(b.time_slot)); // Сортируем по времени
+
+        myBookings.forEach(booking => {
+            const timeString = booking.time_slot;
+            const tag = document.createElement('div');
+            tag.className = 'my-tag';
+            
+            // Если перерыв уже есть в списке finishedSlots, вешаем класс ФИНИШ
+            if (finishedSlots.includes(timeString)) {
+                tag.classList.add('finished');
+            }
+            
+            // Текст со временем
+            const textSpan = document.createElement('span');
+            textSpan.innerText = timeString;
+            tag.appendChild(textSpan);
+
+            // Крестик отмены
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'tag-close-btn';
+            closeBtn.innerHTML = '✕';
+            closeBtn.onclick = (e) => { e.stopPropagation(); cancelBooking(tag, timeString); };
+            tag.appendChild(closeBtn);
+
+            // Клик по самому тегу (уход на перерыв)
+            tag.onclick = (e) => { if(e.target !== closeBtn) finishBreak(tag, timeString); };
+            
+            tagsContainer.appendChild(tag);
+        });
 
     } catch (err) {
         console.error("Ошибка загрузки интервалов:", err);
@@ -232,7 +277,21 @@ async function handleSlotClick(element, type, timeString) {
         const tagsContainer = document.getElementById('my-booked-tags');
         const tag = document.createElement('div');
         tag.className = 'my-tag';
-        tag.innerText = timeString;
+        
+        // Текст со временем
+        const textSpan = document.createElement('span');
+        textSpan.innerText = timeString;
+        tag.appendChild(textSpan);
+
+        // Крестик отмены
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'tag-close-btn';
+        closeBtn.innerHTML = '✕';
+        closeBtn.onclick = (e) => { e.stopPropagation(); cancelBooking(tag, timeString); };
+        tag.appendChild(closeBtn);
+
+        // Клик по самому тегу
+        tag.onclick = (e) => { if(e.target !== closeBtn) finishBreak(tag, timeString); };
         
         // ЛОГИКА "ФИНИША"
         tag.onclick = async function() {
@@ -340,4 +399,65 @@ function goToChannelSelection() {
     selectedChannel = null;
     
     console.log("🔄 Возврат к выбору канала связи");
+}
+
+// ========================================================
+// 🏷️ ЛОГИКА ТЕГОВ (ФИНИШ И ОТМЕНА)
+// ========================================================
+
+// 1. Уход на перерыв (клик по самому тегу)
+async function finishBreak(tagElement, timeString) {
+    if (tagElement.classList.contains('finished')) return;
+
+    if (confirm(`Выйти в перерыв? ${timeString}`)) {
+        tagElement.classList.add('finished');
+        // Как только добавится класс, крестик исчезнет благодаря нашему CSS
+        
+        await supabaseClient.from('global_log').insert([{
+            operator_name: currentOperatorName,
+            channel: selectedChannel,
+            action: 'ФИНИШ',
+            time_slot: timeString,
+            user_id: currentUser.id
+        }]);
+        
+        console.log(`✅ ФИНИШ записан: ${timeString}`);
+    }
+}
+
+// 2. Отмена брони (клик по крестику)
+async function cancelBooking(tagElement, timeString) {
+    if (confirm(`❌ Отменить бронь ${timeString}?\nИнтервал освободится для других операторов.`)) {
+        tagElement.style.opacity = '0.5';
+        tagElement.style.pointerEvents = 'none';
+
+        try {
+            // Удаляем из временной таблицы
+            await supabaseClient.from('active_breaks')
+                .delete()
+                .eq('user_id', currentUser.id)
+                .eq('channel', selectedChannel)
+                .eq('time_slot', timeString);
+
+            // Пишем в вечный лог
+            await supabaseClient.from('global_log').insert([{
+                operator_name: currentOperatorName,
+                channel: selectedChannel,
+                action: 'ОТМЕНА',
+                time_slot: timeString,
+                user_id: currentUser.id
+            }]);
+
+            console.log(`❌ Бронь отменена: ${timeString}`);
+            tagElement.remove(); // Убираем тег с экрана
+            
+            // Перерисовываем сетку, чтобы кнопка снова стала доступной
+            renderOperatorUI();
+        } catch (err) {
+            console.error("Ошибка отмены:", err);
+            alert("Ошибка при отмене брони!");
+            tagElement.style.opacity = '1';
+            tagElement.style.pointerEvents = 'auto';
+        }
+    }
 }

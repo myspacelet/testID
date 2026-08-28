@@ -190,9 +190,11 @@
         </div>
 
         <!-- 🔍 ПОИСК ПО ОПЕРАТОРАМ -->
-        <div class="mac-search-wrapper" style="margin-bottom: 15px;">
-            <input type="text" id="acc-search-input" class="mac-search-input" placeholder="Поиск по имени..." oninput="filterAccountsSearch()" autocomplete="off">
-            <button type="button" class="mac-search-clear" id="acc-search-clear" onclick="clearAccountsSearch()">✕</button>
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+            <div class="mac-search-wrapper" style="width: 250px; margin-bottom: 0;">
+                <input type="text" id="acc-search-input" class="mac-search-input" style="width: 100%; box-sizing: border-box;" placeholder="Поиск по имени..." oninput="filterAccountsSearch()" autocomplete="off">
+                <button type="button" class="mac-search-clear" id="acc-search-clear" onclick="clearAccountsSearch()">✕</button>
+            </div>
         </div>
 
         <!-- Фильтры статусов -->

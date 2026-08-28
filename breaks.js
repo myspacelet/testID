@@ -373,7 +373,7 @@ function toggleTheme() {
     // Меняем иконку (показываем текущую тему)
     const btn = document.getElementById('theme-btn');
     if (btn) btn.innerText = isDark ? '🌙' : '☀️';
-    
+
     // 🆕 Обновляем иконку на кнопке админа
     const adminBtn = document.getElementById('admin-theme-btn');
     if (adminBtn) adminBtn.innerText = isDark ? '🌙' : '☀️';
@@ -784,28 +784,44 @@ async function kickOperator(userId, opName) {
     if (!confirm(`🚨 ВНИМАНИЕ!\nВы уверены, что хотите полностью сбросить оператора ${opName}?\nВсе его текущие брони будут удалены.`)) return;
 
     try {
-        // Удаляем все активные слоты юзера в текущем канале
-        await supabaseClient
+        // 1. Сначала ПОЛУЧАЕМ слоты, которые собираемся удалить
+        const { data: slotsToDelete, error: selectError } = await supabaseClient
+            .from('active_breaks')
+            .select('time_slot')
+            .eq('user_id', userId)
+            .eq('channel', currentAdminChannel);
+
+        if (selectError) throw selectError;
+
+        // Формируем красивую строку со слотами (например: "10:00-10:10, 12:20-12:50")
+        const slotsString = (slotsToDelete && slotsToDelete.length > 0) 
+            ? slotsToDelete.map(row => row.time_slot).join(', ') 
+            : 'Нет активных броней';
+
+        // 2. Теперь безжалостно их удаляем
+        const { error: deleteError } = await supabaseClient
             .from('active_breaks')
             .delete()
             .eq('user_id', userId)
             .eq('channel', currentAdminChannel);
 
-        // Пишем лог от лица админа
+        if (deleteError) throw deleteError;
+
+        // 3. Пишем подробный лог (Кто сбросил, кого сбросили, и какие слоты освободились)
         await supabaseClient.from('global_log').insert([{
-            operator_name: 'ADMIN',
+            operator_name: `ADMIN: ${currentOperatorName}`, // 👈 Имя текущего админа
             channel: currentAdminChannel,
             action: `СБРОС ОПЕРАТОРА: ${opName}`,
-            time_slot: '-',
+            time_slot: slotsString,                         // 👈 Те самые слоты через запятую
             user_id: currentUser.id
         }]);
 
         // Обновляем доску
         loadAdminMonitor(currentAdminChannel);
-        alert(`✅ Оператор ${opName} успешно сброшен.`);
+        alert(`✅ Оператор ${opName} успешно сброшен.\nОсвобождены слоты: ${slotsString}`);
 
     } catch (e) {
-        console.error(e);
+        console.error("Ошибка при сбросе оператора:", e);
         alert("❌ Ошибка при сбросе оператора.");
     }
 }

@@ -785,7 +785,7 @@ body.dark-mode .scroll-nav button:hover {
     padding: 24px 20px;
     border-radius: 16px;
     
-    /* 🍏 СВЕТЛАЯ ТЕМА: Стиль матового стекла macOS (полупрозрачный белый блок) */
+    /* Светлая тема: матовое стекло macOS */
     background: rgba(255, 255, 255, 0.75);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -796,6 +796,18 @@ body.dark-mode .scroll-nav button:hover {
     display: flex;
     flex-direction: column;
     transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+/* Темная тема: строгий глубокий оттенок (без белых вырвиглазных блоков) */
+body.dark-mode .slots-col {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 
+                0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+.slots-col:hover {
+    transform: translateY(-2px);
 }
 
 /* Эффект "левитации" при наведении (опционально, но выглядит круто) */

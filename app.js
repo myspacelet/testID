@@ -633,12 +633,30 @@ function startSearch() {
 
             top3Shops.forEach((shop, index) => {
                 let minStockForBadge = Infinity;
+                let isExactStore = true; // 🧠 Начинаем с предположения, что магазин содержит ВСЕ товары
+
                 activeLists.forEach(item => {
-                    if (item.storesMap.has(shop.code)) minStockForBadge = Math.min(minStockForBadge, item.storesMap.get(shop.code));
+                    if (item.storesMap.has(shop.code)) {
+                        let currentStock = item.storesMap.get(shop.code);
+                        // Проверяем, хватает ли нужного количества именно в этом магазине
+                        if (currentStock < item.requiredStock) {
+                            isExactStore = false; 
+                        }
+                        minStockForBadge = Math.min(minStockForBadge, currentStock);
+                    } else {
+                        // Если хотя бы одного товара в магазине НЕТ — он вылетает из "точных"
+                        isExactStore = false;
+                    }
                 });
+                
                 if (minStockForBadge === Infinity) minStockForBadge = shop.sortStock;
 
-                finalMatches.push({ code: shop.code, stock: minStockForBadge, isExact: (activeLists.length === 1 || index === 0), softCityKey: cityName });
+                finalMatches.push({ 
+                    code: shop.code, 
+                    stock: minStockForBadge, 
+                    isExact: isExactStore, // 👈 Теперь тут работает честная математика
+                    softCityKey: cityName 
+                });
             });
         }
     }

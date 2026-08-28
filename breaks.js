@@ -109,6 +109,24 @@ const LIMITS = {
 let mySelectedBreaks = 0;
 let mySelectedLunches = 0;
 
+// ========================================================
+// 🔢 ОБНОВЛЕНИЕ СЧЕТЧИКОВ
+// ========================================================
+function updateCounters() {
+    const breaksLeft = Math.max(0, LIMITS.breaks - mySelectedBreaks);
+    const lunchesLeft = Math.max(0, LIMITS.lunches - mySelectedLunches);
+    
+    const bCounter = document.getElementById('breaks-counter');
+    const lCounter = document.getElementById('lunches-counter');
+
+    bCounter.innerText = `Доступно: ${breaksLeft} шт.`;
+    lCounter.innerText = `Доступно: ${lunchesLeft} шт.`;
+
+    // Визуальная подсказка: если слотов 0, красим текст в красный
+    bCounter.style.color = breaksLeft === 0 ? '#ff5f56' : 'var(--text-muted)';
+    lCounter.style.color = lunchesLeft === 0 ? '#ff5f56' : 'var(--text-muted)';
+}
+
 // Асинхронный рендер интерфейса оператора (качает слоты из БД)
 async function renderOperatorUI() {
     document.getElementById('op-dashboard').classList.remove('hide');
@@ -461,6 +479,7 @@ async function cancelBooking(tagElement, timeString) {
         }
     }
 }
+
 // ========================================================
 // 🗑️ МАССОВАЯ ОТМЕНА БРОНЕЙ
 // ========================================================
@@ -509,7 +528,7 @@ async function clearAllBookings() {
             return;
         }
 
-        // 5. Удаляем незавершенные слоты из временной таблицы одним махом (через .in)
+        // 5. Удаляем незавершенные слоты из временной таблицы одним махом
         const { error: deleteError } = await supabaseClient
             .from('active_breaks')
             .delete()
@@ -519,30 +538,30 @@ async function clearAllBookings() {
 
         if (deleteError) throw deleteError;
 
-        // 6. Массово пишем "ОТМЕНА" в вечный лог
-        const logsToInsert = slotsToDelete.map(slot => ({
-            operator_name: currentOperatorName,
-            channel: selectedChannel,
-            action: 'ОТМЕНА',
-            time_slot: slot,
-            user_id: currentUser.id
-        }));
+        // 6. 🧠 ОБНОВЛЕННАЯ ЛОГИКА: Формируем единую строку и пишем "СБРОС"
+        const combinedSlotsString = slotsToDelete.join(', ');
 
         const { error: insertError } = await supabaseClient
             .from('global_log')
-            .insert(logsToInsert);
+            .insert([{
+                operator_name: currentOperatorName,
+                channel: selectedChannel,
+                action: 'СБРОС',
+                time_slot: combinedSlotsString,
+                user_id: currentUser.id
+            }]);
 
         if (insertError) throw insertError;
 
-        console.log(`❌ Массовая отмена слотов: ${slotsToDelete.join(', ')}`);
+        console.log(`🧹 Массовый сброс слотов: ${combinedSlotsString}`);
         
-        // 7. Перерисовываем интерфейс (освобожденные кнопки снова станут кликабельными)
+        // 7. Перерисовываем интерфейс
         renderOperatorUI();
 
     } catch (err) {
         console.error("Ошибка при массовой отмене:", err);
         alert("Произошла ошибка при отмене перерывов.");
     } finally {
-        document.body.style.cursor = 'default'; // Возвращаем обычный курсор
+        document.body.style.cursor = 'default';
     }
 }

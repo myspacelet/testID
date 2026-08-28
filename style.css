@@ -1036,3 +1036,27 @@ body.dark-mode .scroll-nav button:hover {
     background: rgba(255, 95, 86, 0.1);
     color: #ff5f56;
 }
+
+/* ========================================================
+   🎯 ЦЕНТРИРОВАНИЕ ЗАГОЛОВКА И СЧЕТЧИКИ
+   ======================================================== */
+.channel-display-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 700;
+    color: #00aeef;
+    font-size: 15px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap; /* Чтобы текст не переносился */
+}
+
+.slots-counter {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 15px;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}

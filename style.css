@@ -779,19 +779,20 @@ body.dark-mode .scroll-nav button:hover {
 }
 
 .slots-col {
-    min-width: 340px; /* 👈 Делаем блоки солиднее и шире (было наверняка меньше) */
-    flex: 1; /* Позволяет колонкам равномерно заполнять пространство */
-    max-width: 400px; /* Ограничитель, чтобы они не разъезжались слишком сильно на огромных мониторах */
-    
-    padding: 24px 20px; /* Чуть больше «воздуха» внутри блока */
+    min-width: 340px;
+    flex: 1;
+    max-width: 400px;
+    padding: 24px 20px;
     border-radius: 16px;
-    background: var(--bg-secondary, rgba(255, 255, 255, 0.03));
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
     
-    /* 🧠 НОВАЯ ТЕНЬ: Многослойная, глубокая, в стиле macOS */
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 
-                0 4px 12px rgba(0, 0, 0, 0.2);
-    
+    /* 🍏 СВЕТЛАЯ ТЕМА: Стиль матового стекла macOS (полупрозрачный белый блок) */
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 
+                0 4px 12px rgba(0, 0, 0, 0.04);
+
     display: flex;
     flex-direction: column;
     transition: box-shadow 0.3s ease, transform 0.3s ease;

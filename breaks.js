@@ -54,7 +54,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // 3. ЖЕСТКАЯ МАРШРУТИЗАЦИЯ (RBAC)
+// 3. ЖЕСТКАЯ МАРШРУТИЗАЦИЯ (RBAC)
         if (currentRole === 'id') {
             // Обычным операторам ИД 2.0 тут делать нечего — отправляем их домой
             window.location.href = 'index.html';
@@ -74,9 +74,11 @@ window.addEventListener('DOMContentLoaded', async () => {
             channelScreen.classList.remove('hide');
         }
 
-        // Если это админ, показываем ему кнопку возврата в ИД 2.0
-        if (currentRole === 'admin' && btnBackToId) {
-            btnBackToId.classList.remove('hide');
+        // 👑 ВСТАВЛЯЕМ СЮДА: Если это админ, показываем ему нужные кнопки
+        if (currentRole === 'admin') {
+            if (btnBackToId) btnBackToId.classList.remove('hide');
+            const btnAdminPanel = document.getElementById('btn-admin-panel');
+            if (btnAdminPanel) btnAdminPanel.classList.remove('hide');
         }
 
     } catch (err) {
@@ -655,4 +657,144 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
     
     // И запускаем цикл (теперь intervalId присваивается безопасно)
     intervalId = setInterval(updateDisplays, 1000);
+}
+
+// ========================================================
+// 👑 ПАНЕЛЬ АДМИНИСТРАТОРА (МОНИТОРИНГ)
+// ========================================================
+let currentAdminChannel = 'HL';
+
+function openAdminPanel() {
+    document.getElementById('channel-screen').classList.add('hide');
+    document.getElementById('admin-app').classList.remove('hide');
+    loadAdminMonitor('HL'); // По умолчанию грузим Горячую линию
+}
+
+function closeAdminPanel() {
+    document.getElementById('admin-app').classList.add('hide');
+    document.getElementById('channel-screen').classList.remove('hide');
+}
+
+async function loadAdminMonitor(channel) {
+    currentAdminChannel = channel;
+    
+    // Переключаем активные табы
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(`adm-tab-${channel}`).classList.add('active');
+
+    const listContainer = document.getElementById('admin-monitor-list');
+    listContainer.innerHTML = '<div style="padding:30px; text-align:center; color: var(--text-muted);">⏳ Синхронизация со спутником...</div>';
+
+    try {
+        // 1. Получаем все активные брони для канала
+        const { data: activeBookings, error: err1 } = await supabaseClient
+            .from('active_breaks')
+            .select('*')
+            .eq('channel', channel);
+
+        // 2. Получаем логи ФИНИШЕЙ для понимания статуса (отгулял/в процессе)
+        const { data: finishLogs, error: err2 } = await supabaseClient
+            .from('global_log')
+            .select('*')
+            .eq('channel', channel)
+            .eq('action', 'ФИНИШ');
+
+        if (err1 || err2) throw new Error("Ошибка БД");
+
+        // 3. Группируем данные по операторам
+        const ops = {};
+        
+        // Распределяем брони
+        activeBookings.forEach(b => {
+            if (!ops[b.user_id]) ops[b.user_id] = { name: b.operator_name, slots: [] };
+            ops[b.user_id].slots.push(b.time_slot);
+        });
+
+        // Распределяем финиши
+        const finishes = {};
+        finishLogs.forEach(l => {
+            if (!finishes[l.user_id]) finishes[l.user_id] = [];
+            finishes[l.user_id].push(l.time_slot);
+        });
+
+        // 4. Отрисовываем HTML
+        let html = '';
+        for (const uid in ops) {
+            const op = ops[uid];
+            op.slots.sort(); // Сортируем время по порядку
+
+            let slotsHtml = op.slots.map(slot => {
+                const isFinished = finishes[uid] && finishes[uid].includes(slot);
+                let slotClass = 'booked'; // По умолчанию просто синий
+
+                if (isFinished) {
+                    // Вычисляем, закончилось ли время слота
+                    const [start, end] = slot.split('-');
+                    const [endH, endM] = end.split(':').map(Number);
+                    const endDate = new Date(); 
+                    endDate.setHours(endH, endM, 0, 0);
+
+                    // Если перерыв переходит через полночь
+                    if (endDate < new Date().setHours(0,0,0,0)) endDate.setDate(endDate.getDate() + 1);
+
+                    if (Date.now() < endDate.getTime()) {
+                        slotClass = 'active'; // 💗 Идет прямо сейчас (Неоновый пульс)
+                    } else {
+                        slotClass = 'done';   // 🔴 Завершен (Перечеркнутый)
+                    }
+                }
+
+                return `<div class="adm-slot ${slotClass}">${slot}</div>`;
+            }).join('');
+
+            html += `
+            <div class="monitor-row">
+                <div class="col-op">
+                    <div class="op-name">${op.name}</div>
+                    <div class="op-time">ID: ${uid.substring(0, 8)}...</div>
+                </div>
+                <div class="col-slots">
+                    <button class="btn-kick-op" onclick="kickOperator('${uid}', '${op.name}')" title="Сбросить оператора">✕</button>
+                    <div class="slots-wrap">${slotsHtml}</div>
+                </div>
+            </div>`;
+        }
+
+        listContainer.innerHTML = html || '<div style="padding:30px; text-align:center; color: var(--text-muted);">Никто не бронировал перерывы 🤷‍♂️</div>';
+
+    } catch (e) {
+        console.error(e);
+        listContainer.innerHTML = '<div style="padding:30px; text-align:center; color: #ff5f56;">❌ Ошибка загрузки данных</div>';
+    }
+}
+
+// Карательная функция: Полный сброс оператора
+async function kickOperator(userId, opName) {
+    if (!confirm(`🚨 ВНИМАНИЕ!\nВы уверены, что хотите полностью сбросить оператора ${opName}?\nВсе его текущие брони будут удалены.`)) return;
+
+    try {
+        // Удаляем все активные слоты юзера в текущем канале
+        await supabaseClient
+            .from('active_breaks')
+            .delete()
+            .eq('user_id', userId)
+            .eq('channel', currentAdminChannel);
+
+        // Пишем лог от лица админа
+        await supabaseClient.from('global_log').insert([{
+            operator_name: 'ADMIN',
+            channel: currentAdminChannel,
+            action: `СБРОС ОПЕРАТОРА: ${opName}`,
+            time_slot: '-',
+            user_id: currentUser.id
+        }]);
+
+        // Обновляем доску
+        loadAdminMonitor(currentAdminChannel);
+        alert(`✅ Оператор ${opName} успешно сброшен.`);
+
+    } catch (e) {
+        console.error(e);
+        alert("❌ Ошибка при сбросе оператора.");
+    }
 }

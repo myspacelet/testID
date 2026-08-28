@@ -36,6 +36,11 @@
         <button id="btn-back-to-id" class="btn-mac-channel hide" style="margin-top: 20px; border: 1px dashed rgba(255,255,255,0.2); background: transparent;" onclick="window.location.href='index.html'">
             <span>⬅️</span> Вернуться в ИД 2.0
         </button>
+
+        <!-- 🆕 КНОПКА ДЛЯ АДМИНА -->
+        <button id="btn-admin-panel" class="btn-mac-channel hide" style="margin-top: 10px; background: rgba(255, 95, 86, 0.1); border-color: rgba(255, 95, 86, 0.3); color: #ff5f56;" onclick="openAdminPanel()">
+            <span>👑</span> Панель Администратора
+        </button>
     </div>
 </div>
 
@@ -85,6 +90,50 @@
         
         <!-- 🆕 Кнопка досрочного завершения -->
         <button id="btn-end-timer-early" class="btn-end-early">⏹ Завершить досрочно</button>
+    </div>
+</div>
+<!-- 👑 ПАНЕЛЬ АДМИНИСТРАТОРА -->
+<div id="admin-app" class="hide app-fullscreen-wrapper">
+    <div class="mac-header">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="font-weight: 800; color: #ff5f56; letter-spacing: 1px; font-size: 18px;">LETU ADMIN</div>
+        </div>
+        
+        <div class="channel-display-title" style="color: #ff5f56;">МОНИТОРИНГ</div>
+        
+        <div class="header-actions-group">
+            <button class="btn-back-channel" onclick="closeAdminPanel()">◀️ В меню</button>
+            <button class="btn-mac-logout" onclick="logout()">🚪 ВЫЙТИ</button>
+        </div>
+    </div>
+
+    <div class="dashboard-flex-area" style="padding: 20px; max-width: 1200px; margin: 0 auto; width: 100%;">
+        
+        <!-- Верхняя панель управления -->
+        <div class="admin-controls-card">
+            <div class="admin-tabs">
+                <button id="adm-tab-HL" class="admin-tab active" onclick="loadAdminMonitor('HL')">📞 ЛИНИЯ</button>
+                <button id="adm-tab-LIVE" class="admin-tab" onclick="loadAdminMonitor('LIVE')">💬 ЧАТ</button>
+                <button id="adm-tab-NIGHT" class="admin-tab" onclick="loadAdminMonitor('NIGHT')">🌙 НОЧЬ</button>
+            </div>
+            <div class="admin-actions">
+                <button class="btn-admin-action">Редактор интервалов</button>
+                <button class="btn-admin-action">Аккаунты</button>
+                <button class="btn-admin-action" style="color: #ff5f56; border-color: rgba(255,95,86,0.3);">Глобальный сброс</button>
+            </div>
+        </div>
+
+        <!-- Доска мониторинга -->
+        <div class="admin-monitor-board">
+            <div class="monitor-header">
+                <div class="col-op">Оператор</div>
+                <div class="col-slots">Забронированные интервалы</div>
+            </div>
+            <div id="admin-monitor-list">
+                <!-- Строки операторов появятся здесь -->
+            </div>
+        </div>
+
     </div>
 </div>
 </body>

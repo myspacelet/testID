@@ -1154,3 +1154,173 @@ body.dark-mode .scroll-nav button:hover {
     border-color: #ff5f56;
     transform: scale(1.05);
 }
+
+/* ========================================================
+   👑 ПАНЕЛЬ АДМИНА
+   ======================================================== */
+.admin-controls-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.admin-tabs {
+    display: flex;
+    gap: 10px;
+}
+
+.admin-tab {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.admin-tab.active {
+    background: rgba(255, 95, 86, 0.15);
+    border-color: #ff5f56;
+    color: #ff5f56;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-admin-action {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-admin-action:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Доска мониторинга */
+.admin-monitor-board {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.monitor-header {
+    display: flex;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.monitor-row {
+    display: flex;
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.02);
+    align-items: center;
+}
+
+.monitor-row:last-child {
+    border-bottom: none;
+}
+
+.col-op {
+    width: 200px;
+    flex-shrink: 0;
+}
+
+.op-name {
+    font-weight: 700;
+    color: #ff5f56;
+    margin-bottom: 4px;
+}
+
+.op-time {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.col-slots {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-kick-op {
+    background: rgba(255, 95, 86, 0.1);
+    color: #ff5f56;
+    border: 1px solid rgba(255, 95, 86, 0.3);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.btn-kick-op:hover {
+    background: #ff5f56;
+    color: #fff;
+}
+
+.slots-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Статусы слотов (Твоя старая цветовая схема, но современная) */
+.adm-slot {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.adm-slot.booked {
+    background: rgba(0, 174, 239, 0.1);
+    color: #00aeef;
+    border: 1px solid rgba(0, 174, 239, 0.3);
+}
+
+.adm-slot.done {
+    background: transparent;
+    color: #ff5f56;
+    border: 1px solid rgba(255, 95, 86, 0.3);
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.adm-slot.active {
+    background: rgba(236, 72, 153, 0.2);
+    color: #ec4899;
+    border: 1px solid #ec4899;
+    box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
+    animation: pulse-neon 2s infinite;
+}
+
+@keyframes pulse-neon {
+    0% { box-shadow: 0 0 5px rgba(236, 72, 153, 0.2); }
+    50% { box-shadow: 0 0 15px rgba(236, 72, 153, 0.6); }
+    100% { box-shadow: 0 0 5px rgba(236, 72, 153, 0.2); }
+}

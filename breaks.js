@@ -373,6 +373,10 @@ function toggleTheme() {
     // Меняем иконку (показываем текущую тему)
     const btn = document.getElementById('theme-btn');
     if (btn) btn.innerText = isDark ? '🌙' : '☀️';
+    
+    // 🆕 Обновляем иконку на кнопке админа
+    const adminBtn = document.getElementById('admin-theme-btn');
+    if (adminBtn) adminBtn.innerText = isDark ? '🌙' : '☀️';
 }
 
 // Проверяем тему при старте страницы

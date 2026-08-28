@@ -146,24 +146,6 @@ function updateCounters() {
     });
 }
 
-// ========================================================
-// 🔢 ОБНОВЛЕНИЕ СЧЕТЧИКОВ
-// ========================================================
-function updateCounters() {
-    const breaksLeft = Math.max(0, LIMITS.breaks - mySelectedBreaks);
-    const lunchesLeft = Math.max(0, LIMITS.lunches - mySelectedLunches);
-    
-    const bCounter = document.getElementById('breaks-counter');
-    const lCounter = document.getElementById('lunches-counter');
-
-    bCounter.innerText = `Доступно: ${breaksLeft} шт.`;
-    lCounter.innerText = `Доступно: ${lunchesLeft} шт.`;
-
-    // Визуальная подсказка: если слотов 0, красим текст в красный
-    bCounter.style.color = breaksLeft === 0 ? '#ff5f56' : 'var(--text-muted)';
-    lCounter.style.color = lunchesLeft === 0 ? '#ff5f56' : 'var(--text-muted)';
-}
-
 // Асинхронный рендер интерфейса оператора
 async function renderOperatorUI() {
     document.getElementById('op-dashboard').classList.remove('hide');

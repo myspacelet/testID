@@ -326,7 +326,6 @@ async function handleAuthSubmit() {
             }, 800);
         }
     }
-}
 
 async function handleLogout() {
     try {

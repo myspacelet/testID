@@ -33,14 +33,22 @@ window.addEventListener('DOMContentLoaded', async () => {
         currentUser = session.user;
 
         // 2. Узнаем, кто именно зашел (ищем роль и имя)
-        const { data: profile, error } = await supabaseClient
+const { data: profile, error } = await supabaseClient
             .from('profiles')
-            .select('role, full_name, approved')
+            .select('role, full_name, approved, is_confirmed') 
             .eq('id', currentUser.id)
             .single();
 
         if (error || !profile || profile.approved !== true) {
             window.location.href = 'index.html';
+            return;
+        }
+
+        // 🛑 НОВАЯ ПРОВЕРКА: Если аккаунт не подтвержден админом
+        if (profile.is_confirmed === false) {
+            await supabaseClient.auth.signOut();
+            alert('⏳ Ваш аккаунт ожидает подтверждения администратором.');
+            window.location.href = 'index.html'; // Выкидываем на страницу логина
             return;
         }
 
@@ -949,5 +957,111 @@ async function deleteInterval(type, timeSlot) {
         if (selectedChannel === currentEditorChannel) renderOperatorUI();
     } catch (err) {
         alert("❌ Ошибка при удалении: " + err.message);
+    }
+}
+
+// ========================================================
+// 👥 УПРАВЛЕНИЕ АККАУНТАМИ И ПОДТВЕРЖДЕНИЯМИ
+// ========================================================
+let allAccountsData = [];
+let currentAccountsFilter = 'all';
+
+function openAccountsModal() {
+    document.getElementById('modal-accounts').classList.add('open');
+    loadAccountsList();
+}
+
+function closeAccountsModal(event) {
+    if (event === null || event.target.id === 'modal-accounts') {
+        document.getElementById('modal-accounts').classList.remove('open');
+    }
+}
+
+async function loadAccountsList() {
+    const container = document.getElementById('accounts-list-container');
+    container.innerHTML = '<div style="text-align:center; padding: 25px; color: var(--text-muted);">⏳ Загрузка учетных записей...</div>';
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('id, full_name, role, is_confirmed')
+            .order('full_name', { ascending: true });
+
+        if (error) throw error;
+        allAccountsData = data || [];
+        renderAccounts();
+    } catch (err) {
+        console.error("Ошибка загрузки аккаунтов:", err);
+        container.innerHTML = '<div style="text-align:center; color: var(--danger); padding: 20px;">❌ Ошибка получения списка</div>';
+    }
+}
+
+function setAccountsFilter(filter) {
+    currentAccountsFilter = filter;
+    document.querySelectorAll('#modal-accounts .admin-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(`acc-tab-${filter}`).classList.add('active');
+    renderAccounts();
+}
+
+function renderAccounts() {
+    const container = document.getElementById('accounts-list-container');
+    
+    let filtered = allAccountsData;
+    if (currentAccountsFilter === 'confirmed') {
+        filtered = allAccountsData.filter(u => u.is_confirmed === true);
+    } else if (currentAccountsFilter === 'pending') {
+        filtered = allAccountsData.filter(u => !u.is_confirmed);
+    }
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 30px;">Никого не найдено</div>';
+        return;
+    }
+
+    container.innerHTML = filtered.map(u => {
+        const isConfirmed = u.is_confirmed === true;
+        const roleLabel = u.role === 'admin' ? '👑 Администратор' : (u.role === 'id' ? '🚌 ИД 2.0' : '🎧 Оператор');
+        
+        return `
+            <div class="account-card-row">
+                <div class="account-info-main">
+                    <span class="account-name-text">${u.full_name || 'Без имени'}</span>
+                    <span class="account-sub-text">${roleLabel}</span>
+                </div>
+                <div class="account-actions-side">
+                    <span class="status-pill ${isConfirmed ? 'confirmed' : 'pending'}">
+                        ${isConfirmed ? '✓ TRUE' : '✕ FALSE'}
+                    </span>
+                    <button 
+                        class="btn-status-toggle ${isConfirmed ? 'revoke' : 'confirm'}" 
+                        onclick="toggleUserConfirmation('${u.id}', ${!isConfirmed}, '${(u.full_name || '').replace(/'/g, "\\'")}')">
+                        ${isConfirmed ? 'Заблокировать' : 'Подтвердить'}
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function toggleUserConfirmation(userId, newStatus, fullName) {
+    const actionName = newStatus ? 'подтвердить' : 'заблокировать';
+    if (!confirm(`Вы действительно хотите ${actionName} пользователя ${fullName}?`)) return;
+
+    try {
+        const { error } = await supabaseClient
+            .from('profiles')
+            .update({ is_confirmed: newStatus })
+            .eq('id', userId);
+
+        if (error) throw error;
+
+        // Обновляем данные на лету и перерисовываем список
+        const target = allAccountsData.find(u => u.id === userId);
+        if (target) target.is_confirmed = newStatus;
+        
+        renderAccounts();
+    } catch (err) {
+        console.error("Ошибка при обновлении доступа:", err);
+        alert("❌ Ошибка при изменении статуса: " + err.message);
     }
 }

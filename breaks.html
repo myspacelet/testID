@@ -122,7 +122,7 @@
             </div>
             <div class="admin-actions">
                 <button class="btn-admin-action" onclick="openIntervalEditorModal()">Редактор интервалов</button>
-                <button class="btn-admin-action">Аккаунты</button>
+                <button class="btn-admin-action" onclick="openAccountsModal()">Аккаунты</button>
                 <button class="btn-admin-action" style="color: #ff5f56; border-color: rgba(255,95,86,0.3);">Глобальный сброс</button>
             </div>
         </div>
@@ -178,6 +178,27 @@
                 </label>
                 <button onclick="addNewInterval()" class="btn-main btn-primary" style="padding: 8px 20px; flex: none;">➕ Добавить</button>
             </div>
+        </div>
+    </div>
+</div>
+<!-- 👥 МОДАЛКА УПРАВЛЕНИЯ АККАУНТАМИ -->
+<div id="modal-accounts" class="modal-overlay" onclick="closeAccountsModal(event)">
+    <div class="modal-content" style="max-width: 600px; max-height: 85vh; display: flex; flex-direction: column;" onclick="event.stopPropagation()">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 class="input-label" style="font-size: 17px; margin: 0; color: var(--text-title);">👥 Управление доступом операторов</h3>
+            <button class="modal-close" onclick="closeAccountsModal(null)">×</button>
+        </div>
+
+        <!-- Фильтры статусов -->
+        <div class="admin-tabs" style="margin-bottom: 15px;">
+            <button id="acc-tab-all" class="admin-tab active" onclick="setAccountsFilter('all')">Все</button>
+            <button id="acc-tab-pending" class="admin-tab" onclick="setAccountsFilter('pending')">Ожидают подтверждения</button>
+            <button id="acc-tab-confirmed" class="admin-tab" onclick="setAccountsFilter('confirmed')">Подтвержденные</button>
+        </div>
+
+        <!-- Список учетных записей -->
+        <div id="accounts-list-container" style="overflow-y: auto; flex: 1; padding-right: 4px; min-height: 250px;">
+            <!-- Строки пользователей генерируются JS -->
         </div>
     </div>
 </div>

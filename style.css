@@ -1484,3 +1484,92 @@ body.dark-mode .ie-slot-item.unique-slot {
     border: 2px solid #a855f7 !important;
     color: #c084fc !important;
 }
+/* ========================================================
+   👥 ПАНЕЛЬ УПРАВЛЕНИЯ АККАУНТАМИ (АДМИН)
+   ======================================================== */
+.account-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-element);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    transition: background 0.2s ease;
+}
+
+.account-card-row:hover {
+    background: var(--bg-hover);
+}
+
+.account-info-main {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.account-name-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.account-sub-text {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.account-actions-side {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.status-pill.confirmed {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid var(--success-border);
+}
+
+.status-pill.pending {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+}
+
+.btn-status-toggle {
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.btn-status-toggle.confirm {
+    background: var(--success);
+    color: #ffffff;
+}
+
+.btn-status-toggle.revoke {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-status-toggle.revoke:hover {
+    background: #ef4444;
+    color: #ffffff;
+}

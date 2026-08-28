@@ -270,11 +270,12 @@ async function handleAuthSubmit() {
         const user = data.user;
         const { data: profile, error: profileError } = await supabaseClient
             .from('profiles')
-            .select('approved, full_name, role') // 👈 ДОБАВИЛИ ЗАПРОС РОЛИ
+            .select('is_confirmed, full_name, role') // 👈 ЗАМЕНИЛИ approved на is_confirmed
             .eq('id', user.id)
             .single();
 
-        if (profileError || !profile || profile.approved !== true) {
+        // 🛑 ВОТ ЗДЕСЬ ИСПРАВИЛИ проверку на is_confirmed
+        if (profileError || !profile || profile.is_confirmed !== true) {
             await supabaseClient.auth.signOut();
             if (statusMsg) {
                 statusMsg.style.color = 'var(--danger)';
@@ -302,6 +303,7 @@ async function handleAuthSubmit() {
                 statusMsg.style.color = 'var(--success)';
                 statusMsg.innerHTML = '🚀 Доступ разрешен!';
             }
+        }
             
             const welcomeTitle = document.getElementById('app-welcome-title');
             if (welcomeTitle && profile && profile.full_name) {

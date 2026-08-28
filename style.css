@@ -1060,3 +1060,58 @@ body.dark-mode .scroll-nav button:hover {
     font-weight: 500;
     transition: color 0.3s ease;
 }
+
+/* ========================================================
+   ⏱️ ФУЛЛСКРИН ТАЙМЕР (ОВЕРЛЕЙ)
+   ======================================================== */
+.fullscreen-timer-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(20, 20, 25, 0.85); /* Темный полупрозрачный фон */
+    backdrop-filter: blur(8px); /* Красивое размытие всего интерфейса */
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99999; /* Поверх вообще всего */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: #fff;
+    text-align: center;
+    transition: opacity 0.3s ease;
+}
+
+/* Утилита для скрытия */
+.fullscreen-timer-wrapper.hide {
+    display: none;
+    opacity: 0;
+}
+
+.timer-title {
+    font-size: 24px;
+    letter-spacing: 6px;
+    color: #00aeef;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.timer-time {
+    font-size: 140px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 20px;
+    font-family: 'Courier New', Courier, monospace; /* Моноширинный шрифт, чтобы цифры не прыгали */
+    text-shadow: 0 0 30px rgba(0, 174, 239, 0.4); /* Неоновое свечение */
+}
+
+.timer-slot {
+    font-size: 20px;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 24px;
+    border-radius: 30px;
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}

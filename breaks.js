@@ -604,40 +604,65 @@ function getSlotDuration(timeString) {
     return Math.round((endDate - startDate) / 60000);
 }
 
-// 2. Запуск неубиваемого таймера
+// 2. Запуск неубиваемого таймера (с фуллскрин-экраном)
 function startIronTimer(tagElement, timeString, isRestore = false) {
     const textSpan = tagElement.querySelector('span');
     const storageKey = `timer_target_${timeString}`;
     
+    // Подхватываем элементы большого экрана
+    const overlay = document.getElementById('fullscreen-timer-overlay');
+    const bigTimeDisplay = document.getElementById('big-timer-time');
+    const bigSlotDisplay = document.getElementById('big-timer-slot');
+    
     let targetTime;
 
     if (isRestore && localStorage.getItem(storageKey)) {
-        // Восстанавливаем таймер после F5
         targetTime = parseInt(localStorage.getItem(storageKey), 10);
     } else {
-        // Создаем новый таймер
         const durationMinutes = getSlotDuration(timeString);
         targetTime = Date.now() + (durationMinutes * 60 * 1000);
         localStorage.setItem(storageKey, targetTime.toString());
     }
 
-    tagElement.style.background = 'rgba(0, 174, 239, 0.15)'; // Подсвечиваем активный таймер
+    // Подсвечиваем маленький тег
+    tagElement.style.background = 'rgba(0, 174, 239, 0.15)';
     tagElement.style.border = '1px solid #00aeef';
 
-    const intervalId = setInterval(() => {
+    // Включаем оверлей и задаем ему интервал
+    bigSlotDisplay.innerText = timeString;
+    overlay.classList.remove('hide');
+
+    const updateDisplays = () => {
         const remaining = targetTime - Date.now();
 
         if (remaining <= 0) {
+            // ТАЙМЕР ВЫШЕЛ
             clearInterval(intervalId);
             localStorage.removeItem(storageKey);
+            
+            // Обновляем тег
             textSpan.innerText = `${timeString} (Завершен)`;
             tagElement.style.background = 'rgba(255, 255, 255, 0.05)';
             tagElement.style.border = '1px solid var(--border-color)';
             tagElement.style.color = 'var(--text-muted)';
+            
+            // Прячем оверлей, разблокируя интерфейс
+            overlay.classList.add('hide');
         } else {
+            // ТАЙМЕР ИДЕТ: Считаем минуты и секунды
             const minutes = Math.floor(remaining / 60000);
             const seconds = Math.floor((remaining % 60000) / 1000);
-            textSpan.innerText = `${timeString} ⏳ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Обновляем сразу и там, и там
+            textSpan.innerText = `${timeString} ⏳ ${formattedTime}`;
+            bigTimeDisplay.innerText = formattedTime;
         }
-    }, 1000);
+    };
+
+    // Вызываем сразу 1 раз, чтобы на экране не висело "00:00" целую секунду перед стартом
+    updateDisplays(); 
+    
+    // И запускаем цикл
+    const intervalId = setInterval(updateDisplays, 1000);
 }

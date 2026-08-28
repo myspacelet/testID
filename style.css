@@ -1217,10 +1217,14 @@ body.dark-mode .slots-col {
     border-radius: 8px;
     cursor: pointer;
     font-weight: 500;
+    transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) !important; 
 }
 
 .btn-admin-action:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background-color: rgba(227, 0, 79, 0.08) !important; /* Едва заметная розовая заливка (8% непрозрачности) */
+    color: #e3004f !important; /* Фирменный розовый акцент для текста */
+    border-color: rgba(227, 0, 79, 0.3) !important; /* Нежная рамка */
+    box-shadow: 0 4px 15px rgba(227, 0, 79, 0.1) !important; /* Мягкое маковское свечение вокруг */
 }
 
 /* Доска мониторинга */
@@ -1375,9 +1379,6 @@ body.dark-mode .slots-col {
     border-color: rgba(0, 0, 0, 0.1);
 }
 
-.btn-admin-action:hover {
-    background: rgba(0, 0, 0, 0.06);
-}
 
 /* 🌙 ТЕМНАЯ ТЕМА ДЛЯ АДМИНКИ */
 body.dark-mode .admin-controls-card,

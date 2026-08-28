@@ -281,6 +281,7 @@ async function handleAuthSubmit() {
                 statusMsg.style.color = 'var(--danger)';
                 statusMsg.innerHTML = "🔒 Доступ ограничен. Администратор ещё не одобрил вашу заявку.";
             }
+            return; // 👈 ДОБАВИЛИ RETURN, ЧТОБЫ СКРИПТ ОСТАНАВЛИВАЛСЯ!
         } else {
             // 🛑 НОВАЯ ЖЕСТКАЯ ПРОВЕРКА РОЛИ
             if (!profile.role || !['op', 'id', 'admin'].includes(profile.role)) {

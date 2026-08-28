@@ -132,10 +132,18 @@ window.addEventListener('DOMContentLoaded', async () => {
                     return; 
                 }
 
-                // 👈 МАРШРУТИЗАЦИЯ: Если это 'op', мгновенно кидаем в перерывы
+                // 👈 МАРШРУТИЗАЦИЯ
                 if (profile.role === 'op') {
                     window.location.href = 'breaks.html';
                     return; 
+                }
+
+                // 🛑 АДМИН по умолчанию летит в перерывы, если только он явно не нажал кнопку "Вернуться в ИД 2.0"
+                if (profile.role === 'admin') {
+                    if (localStorage.getItem('admin_app_location') !== 'id20') {
+                        window.location.href = 'breaks.html';
+                        return;
+                    }
                 }
 
         // ПОЛЬЗОВАТЕЛЬ АВТОРИЗОВАН (admin или id): просто скрываем всё окно загрузки
@@ -153,7 +161,16 @@ window.addEventListener('DOMContentLoaded', async () => {
                 // 👑 ПОКАЗЫВАЕМ КНОПКУ ПЕРЕХОДА В ПЕРЕРЫВЫ ДЛЯ АДМИНА
                 if (profile.role === 'admin') {
                     const btnGoToBreaks = document.getElementById('btn-go-to-breaks');
-                    if (btnGoToBreaks) btnGoToBreaks.classList.remove('hide');
+                    if (btnGoToBreaks) {
+                        btnGoToBreaks.classList.remove('hide');
+                        // Перехватываем клик, чтобы система запомнила: админ ушел в перерывы
+                        btnGoToBreaks.onclick = (e) => {
+                            e.preventDefault();
+                            localStorage.setItem('admin_app_location', 'breaks');
+                            localStorage.setItem('isAdminPanelOpen', 'true');
+                            window.location.href = 'breaks.html';
+                        };
+                    }
                 }
             } else {
                 // Учетка есть, но не одобрена (или ошибка) -> разлогиниваем и показываем форму
@@ -294,7 +311,9 @@ async function handleAuthSubmit() {
             }
 
             // 👈 МАРШРУТИЗАЦИЯ
-            if (profile.role === 'op') {
+            if (profile.role === 'op' || profile.role === 'admin') {
+                localStorage.setItem('admin_app_location', 'breaks'); // Запоминаем выбор админа
+                localStorage.setItem('isAdminPanelOpen', 'true'); // Сразу откроем мониторинг
                 window.location.href = 'breaks.html';
                 return;
             }

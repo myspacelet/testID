@@ -75,14 +75,26 @@ window.addEventListener('DOMContentLoaded', async () => {
 
         // 👑 СНАЧАЛА: Если это админ, показываем ему нужные кнопки
         if (currentRole === 'admin') {
-            if (btnBackToId) btnBackToId.classList.remove('hide');
             const btnAdminPanel = document.getElementById('btn-admin-panel');
             if (btnAdminPanel) btnAdminPanel.classList.remove('hide');
+            
+            if (btnBackToId) {
+                btnBackToId.classList.remove('hide');
+                // 👈 Перехватываем клик: даем админу "пропуск" на страницу ИД 2.0
+                btnBackToId.onclick = (e) => {
+                    e.preventDefault();
+                    localStorage.setItem('admin_app_location', 'id20');
+                    window.location.href = 'index.html';
+                };
+            }
         }
 
         // 🧠 ПРОВЕРЯЕМ ПАМЯТЬ БРАУЗЕРА
         const savedChannel = localStorage.getItem('savedChannel');
-        const isAdminPanelOpen = localStorage.getItem('isAdminPanelOpen'); // 👈 Ищем флаг админки
+        let isAdminPanelOpen = localStorage.getItem('isAdminPanelOpen'); 
+        
+        // 👈 Если флага нет, считаем что админка открыта по умолчанию
+        if (isAdminPanelOpen === null) isAdminPanelOpen = 'true';
 
         // 👈 НОВАЯ ЛОГИКА МАРШРУТИЗАЦИИ (С учетом автовозврата в админку)
         if (currentRole === 'admin' && isAdminPanelOpen === 'true') {

@@ -32,27 +32,28 @@ window.addEventListener('DOMContentLoaded', async () => {
 
         currentUser = session.user;
 
-        // 2. Узнаем, кто именно зашел (ищем роль и имя)
-const { data: profile, error } = await supabaseClient
+        // 2. Узнаем, кто именно зашел (ищем роль, имя и ЕДИНСТВЕННЫЙ статус)
+        const { data: profile, error } = await supabaseClient
             .from('profiles')
-            .select('role, full_name, approved, is_confirmed') 
+            .select('role, full_name, is_confirmed') // 👈 Убрали approved отсюда
             .eq('id', currentUser.id)
             .single();
 
-        if (error || !profile || profile.approved !== true) {
+        // Базовая проверка: если профиля нет или ошибка связи
+        if (error || !profile) { // 👈 Убрали проверку approved !== true
             window.location.href = 'index.html';
             return;
         }
 
-        // 🛑 НОВАЯ ПРОВЕРКА: Если аккаунт не подтвержден админом
+        // 🛑 ЕДИНСТВЕННАЯ И БРОНЕБОЙНАЯ ПРОВЕРКА ДОСТУПА
         if (profile.is_confirmed === false) {
             await supabaseClient.auth.signOut();
             alert('⏳ Ваш аккаунт ожидает подтверждения администратором.');
-            window.location.href = 'index.html'; // Выкидываем на страницу логина
+            window.location.href = 'index.html';
             return;
         }
 
-        currentRole = profile.role; // Убрали заглушку || 'op'
+        currentRole = profile.role;
         currentOperatorName = profile.full_name || 'Оператор';
 
         // 🛑 ЖЕСТКАЯ ПРОВЕРКА: Если роли вообще нет или она кривая - на выход

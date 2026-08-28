@@ -96,18 +96,55 @@ function selectChannel(channelCode) {
 }
 
 // ========================================================
-// ⏱️ ГЕНЕРАЦИЯ И ОТРИСОВКА ИНТЕРВАЛОВ
+// ⏱️ КОНФИГУРАЦИЯ КАНАЛОВ И СЧЕТЧИКИ
 // ========================================================
 
-// Лимиты для Горячей линии
-const LIMITS = {
-    breaks: 4,
-    lunches: 1
+// Гибкая настройка для каждого канала
+const CHANNEL_CONFIG = {
+    'HL': {
+        columns: [
+            { type: 'break10', title: 'Перерывы (10 мин)', limit: 4 },
+            { type: 'lunch30', title: 'Обеды (30 мин)', limit: 1 }
+        ]
+    },
+    'LIVE': {
+        columns: [
+            { type: 'break15', title: 'Перерывы (15 мин)', limit: 2 },
+            { type: 'break20', title: 'Перерывы (20 мин)', limit: 1 },
+            { type: 'lunch40', title: 'Обеды (40 мин)', limit: 1 }
+        ]
+    },
+    'NIGHT': {
+        columns: [
+            { type: 'break15', title: 'Перерывы (15 мин)', limit: 2 },
+            { type: 'break20', title: 'Перерывы (20 мин)', limit: 1 },
+            { type: 'lunch40', title: 'Обеды (40 мин)', limit: 1 }
+        ]
+    }
 };
 
-// Счетчики выбранных слотов (пока локальные)
-let mySelectedBreaks = 0;
-let mySelectedLunches = 0;
+// Динамическое хранилище выбранных слотов (например: { break15: 2, lunch40: 0 })
+let mySelections = {};
+
+// ========================================================
+// 🔢 ОБНОВЛЕНИЕ СЧЕТЧИКОВ
+// ========================================================
+function updateCounters() {
+    if (!selectedChannel) return;
+    
+    const config = CHANNEL_CONFIG[selectedChannel].columns;
+    
+    config.forEach(col => {
+        const selectedCount = mySelections[col.type] || 0;
+        const left = Math.max(0, col.limit - selectedCount);
+        
+        const counterEl = document.getElementById(`counter-${col.type}`);
+        if (counterEl) {
+            counterEl.innerText = `Доступно: ${left} шт.`;
+            counterEl.style.color = left === 0 ? '#ff5f56' : 'var(--text-muted)';
+        }
+    });
+}
 
 // ========================================================
 // 🔢 ОБНОВЛЕНИЕ СЧЕТЧИКОВ
@@ -127,23 +164,37 @@ function updateCounters() {
     lCounter.style.color = lunchesLeft === 0 ? '#ff5f56' : 'var(--text-muted)';
 }
 
-// Асинхронный рендер интерфейса оператора (качает слоты из БД)
+// Асинхронный рендер интерфейса оператора
 async function renderOperatorUI() {
     document.getElementById('op-dashboard').classList.remove('hide');
     document.getElementById('op-id-display').innerText = currentOperatorName;
     document.getElementById('op-channel-display').innerText = 
         selectedChannel === 'HL' ? 'ГОРЯЧАЯ ЛИНИЯ' : (selectedChannel === 'LIVE' ? 'ЧАТ LIVETEX' : 'ЧАТ НОЧЬ');
 
-    const breaksContainer = document.getElementById('breaks-10-container');
-    const lunchesContainer = document.getElementById('lunches-30-container');
-    const tagsContainer = document.getElementById('my-booked-tags'); // 👈 Добавили контейнер для тегов
+    const gridContainer = document.getElementById('dynamic-slots-grid');
+    const tagsContainer = document.getElementById('my-booked-tags');
+    tagsContainer.innerHTML = '';
+    
+    // Получаем настройки текущего канала
+    const currentConfig = CHANNEL_CONFIG[selectedChannel].columns;
 
-    breaksContainer.innerHTML = '<div style="text-align:center; padding:15px; font-size:13px; color:var(--text-muted);">⏳ Загрузка...</div>';
-    lunchesContainer.innerHTML = '<div style="text-align:center; padding:15px; font-size:13px; color:var(--text-muted);">⏳ Загрузка...</div>';
-    tagsContainer.innerHTML = ''; // 👈 Обязательно очищаем старые теги перед загрузкой
+    // 1. Строим HTML-каркас колонок на лету
+    gridContainer.innerHTML = currentConfig.map(col => `
+        <div class="slots-col">
+            <h3 class="slots-title">${col.title}</h3>
+            <div id="counter-${col.type}" class="slots-counter">Доступно: ${col.limit} шт.</div>
+            <div id="container-${col.type}" class="slots-container">
+                <div style="text-align:center; padding:15px; font-size:13px; color:var(--text-muted);">⏳ Загрузка...</div>
+            </div>
+        </div>
+    `).join('');
+
+    // Сбрасываем локальные счетчики
+    mySelections = {};
+    currentConfig.forEach(col => mySelections[col.type] = 0);
 
     try {
-        // 1. Запрашиваем справочник интервалов
+        // 2. Качаем данные из базы
         const { data: intervals, error } = await supabaseClient
             .from('intervals_config')
             .select('type, time_slot')
@@ -152,7 +203,6 @@ async function renderOperatorUI() {
 
         if (error) throw error;
 
-        // 2. Запрашиваем занятые слоты из базы
         const { data: activeBookings, error: bookingsError } = await supabaseClient
             .from('active_breaks')
             .select('*')
@@ -160,7 +210,6 @@ async function renderOperatorUI() {
 
         if (bookingsError) throw bookingsError;
 
-        // 3. 🧠 Узнаем, какие слоты мы уже отгуляли (ищем ФИНИШ в истории)
         const { data: finishLogs, error: logsError } = await supabaseClient
             .from('global_log')
             .select('time_slot')
@@ -168,13 +217,9 @@ async function renderOperatorUI() {
             .eq('user_id', currentUser.id)
             .eq('action', 'ФИНИШ');
             
-        // Создаем массив уже отгулянных перерывов (например: ["10:00-10:10", "12:00-12:10"])
         const finishedSlots = finishLogs ? finishLogs.map(l => l.time_slot) : [];
 
-        const breaksList = intervals.filter(i => i.type === 'break10').map(i => i.time_slot);
-        const lunchesList = intervals.filter(i => i.type === 'lunch30').map(i => i.time_slot);
-
-        // Вспомогательная функция для сборки HTML кнопки слота
+        // Вспомогательная функция сборки кнопки
         const buildSlotHTML = (slot, type) => {
             const booking = activeBookings.find(b => b.time_slot === slot);
             if (booking) {
@@ -187,27 +232,26 @@ async function renderOperatorUI() {
             return `<div class="mac-slot" onclick="handleSlotClick(this, '${type}', '${slot}')">${slot}</div>`;
         };
 
-        // Отрисовываем ПЕРЕРЫВЫ
-        breaksContainer.innerHTML = breaksList.length > 0 
-            ? breaksList.map(slot => buildSlotHTML(slot, 'break')).join('') 
-            : '<div style="text-align:center; font-size:12px; color:var(--text-muted);">Нет доступных интервалов</div>';
-
-        // Отрисовываем ОБЕДЫ
-        lunchesContainer.innerHTML = lunchesList.length > 0 
-            ? lunchesList.map(slot => buildSlotHTML(slot, 'lunch')).join('') 
-            : '<div style="text-align:center; font-size:12px; color:var(--text-muted);">Нет доступных интервалов</div>';
-
-        // Восстанавливаем счетчики лимитов
-        mySelectedBreaks = activeBookings.filter(b => b.user_id === currentUser.id && breaksList.includes(b.time_slot)).length;
-        mySelectedLunches = activeBookings.filter(b => b.user_id === currentUser.id && lunchesList.includes(b.time_slot)).length;
+        // 3. Распределяем интервалы по колонкам
+        currentConfig.forEach(col => {
+            const container = document.getElementById(`container-${col.type}`);
+            const typeIntervals = intervals.filter(i => i.type === col.type).map(i => i.time_slot);
+            
+            container.innerHTML = typeIntervals.length > 0 
+                ? typeIntervals.map(slot => buildSlotHTML(slot, col.type)).join('') 
+                : '<div style="text-align:center; font-size:12px; color:var(--text-muted);">Нет интервалов</div>';
+                
+            // Подсчитываем, сколько мы уже заняли в этой колонке
+            mySelections[col.type] = activeBookings.filter(b => b.user_id === currentUser.id && typeIntervals.includes(b.time_slot)).length;
+        });
 
         updateCounters();
 
-        // 4. 🧠 ВОССТАНАВЛИВАЕМ ТЕГИ СВЕРХУ С КРЕСТИКАМИ
+        // 4. ВОССТАНАВЛИВАЕМ ТЕГИ СВЕРХУ
         const myBookings = activeBookings.filter(b => b.user_id === currentUser.id);
-        myBookings.sort((a, b) => a.time_slot.localeCompare(b.time_slot)); // Сортируем по времени
+        myBookings.sort((a, b) => a.time_slot.localeCompare(b.time_slot));
 
-            myBookings.forEach(booking => {
+        myBookings.forEach(booking => {
             const timeString = booking.time_slot;
             const tag = document.createElement('div');
             tag.className = 'my-tag';
@@ -224,108 +268,79 @@ async function renderOperatorUI() {
 
             tag.onclick = (e) => { if(e.target !== closeBtn) finishBreak(tag, timeString); };
             
-            // 🧠 МАГИЯ ТАЙМЕРА ПРИ ПЕРЕЗАГРУЗКЕ
             if (finishedSlots.includes(timeString)) {
                 tag.classList.add('finished');
-                
-                // Проверяем, не идет ли еще таймер в памяти браузера
                 const storageKey = `timer_target_${timeString}`;
                 const savedTarget = localStorage.getItem(storageKey);
                 
                 if (savedTarget && parseInt(savedTarget, 10) > Date.now()) {
-                    // Таймер еще жив! Продолжаем отсчет
                     startIronTimer(tag, timeString, true);
                 } else {
-                    // Таймер уже вышел, просто пишем, что завершен
                     textSpan.innerText = `${timeString} (Завершен)`;
                     tag.style.color = 'var(--text-muted)';
                 }
             }
-            
             tagsContainer.appendChild(tag);
         });
 
     } catch (err) {
-        console.error("Ошибка загрузки интервалов:", err);
-        breaksContainer.innerHTML = '<div style="color:var(--danger); text-align:center; font-size:12px;">Ошибка базы</div>';
-        lunchesContainer.innerHTML = '<div style="color:var(--danger); text-align:center; font-size:12px;">Ошибка базы</div>';
+        console.error("Ошибка загрузки:", err);
+        gridContainer.innerHTML = '<div style="color:var(--danger); text-align:center; width: 100%;">Ошибка загрузки базы данных</div>';
     }
 }
 
-// Обработка клика по слоту (Отправка в Supabase)
+// Обработка клика по слоту
 async function handleSlotClick(element, type, timeString) {
     if (element.classList.contains('booked') || element.classList.contains('my')) return;
 
-    if (type === 'break' && mySelectedBreaks >= LIMITS.breaks) {
-        alert("Вы достигли лимита: 4 перерыва.");
-        return;
-    }
-    if (type === 'lunch' && mySelectedLunches >= LIMITS.lunches) {
-        alert("Вы достигли лимита: 1 обед.");
+    // Находим лимит для текущего типа слота (например, break15)
+    const columnConfig = CHANNEL_CONFIG[selectedChannel].columns.find(c => c.type === type);
+    
+    if (mySelections[type] >= columnConfig.limit) {
+        alert(`Вы достигли лимита: ${columnConfig.limit} шт. для "${columnConfig.title}".`);
         return;
     }
 
-    // ⏳ Блокируем кнопку на время общения с базой
     element.style.pointerEvents = 'none';
     element.innerText = '⏳';
     element.style.opacity = '0.6';
 
     try {
-        // 1. Занимаем слот в таблице active_breaks
         const { error: insertError } = await supabaseClient
             .from('active_breaks')
-            .insert([{
-                operator_name: currentOperatorName,
-                channel: selectedChannel,
-                time_slot: timeString,
-                user_id: currentUser.id
-            }]);
+            .insert([{ operator_name: currentOperatorName, channel: selectedChannel, time_slot: timeString, user_id: currentUser.id }]);
 
         if (insertError) throw insertError;
 
-        // 2. Пишем исторический факт в global_log
         await supabaseClient
             .from('global_log')
-            .insert([{
-                operator_name: currentOperatorName,
-                channel: selectedChannel,
-                action: 'БРОНЬ',
-                time_slot: timeString,
-                user_id: currentUser.id
-            }]);
+            .insert([{ operator_name: currentOperatorName, channel: selectedChannel, action: 'БРОНЬ', time_slot: timeString, user_id: currentUser.id }]);
 
-        // ✅ Успех! Окрашиваем кнопку
         element.classList.add('my');
         element.innerText = timeString;
         element.style.pointerEvents = 'auto';
         element.style.opacity = '1';
 
-        if (type === 'break') mySelectedBreaks++;
-        if (type === 'lunch') mySelectedLunches++;
-
+        // Увеличиваем динамический счетчик
+        mySelections[type]++;
         updateCounters();
 
-       // Создаем тег сверху
         const tagsContainer = document.getElementById('my-booked-tags');
         const tag = document.createElement('div');
         tag.className = 'my-tag';
         
-        // Текст со временем
         const textSpan = document.createElement('span');
         textSpan.innerText = timeString;
         tag.appendChild(textSpan);
 
-        // Крестик отмены
         const closeBtn = document.createElement('button');
         closeBtn.className = 'tag-close-btn';
         closeBtn.innerHTML = '✕';
         closeBtn.onclick = (e) => { e.stopPropagation(); cancelBooking(tag, timeString); };
         tag.appendChild(closeBtn);
 
-        // Клик по самому тегу (Запускает finishBreak)
         tag.onclick = (e) => { if(e.target !== closeBtn) finishBreak(tag, timeString); };
         
-        // 🧠 УМНАЯ СОРТИРОВКА ТЕГОВ
         const existingTags = Array.from(tagsContainer.children);
         const nextNode = existingTags.find(t => t.innerText > timeString);
 
@@ -338,7 +353,6 @@ async function handleSlotClick(element, type, timeString) {
     } catch (err) {
         console.error(err);
         alert("❌ Слот уже занят или произошла ошибка соединения!");
-        // Возвращаем кнопку в исходное состояние, если база отказала
         element.innerText = timeString;
         element.style.pointerEvents = 'auto';
         element.style.opacity = '1';

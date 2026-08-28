@@ -207,30 +207,40 @@ async function renderOperatorUI() {
         const myBookings = activeBookings.filter(b => b.user_id === currentUser.id);
         myBookings.sort((a, b) => a.time_slot.localeCompare(b.time_slot)); // Сортируем по времени
 
-        myBookings.forEach(booking => {
+            myBookings.forEach(booking => {
             const timeString = booking.time_slot;
             const tag = document.createElement('div');
             tag.className = 'my-tag';
             
-            // Если перерыв уже есть в списке finishedSlots, вешаем класс ФИНИШ
-            if (finishedSlots.includes(timeString)) {
-                tag.classList.add('finished');
-            }
-            
-            // Текст со временем
             const textSpan = document.createElement('span');
             textSpan.innerText = timeString;
             tag.appendChild(textSpan);
 
-            // Крестик отмены
             const closeBtn = document.createElement('button');
             closeBtn.className = 'tag-close-btn';
             closeBtn.innerHTML = '✕';
             closeBtn.onclick = (e) => { e.stopPropagation(); cancelBooking(tag, timeString); };
             tag.appendChild(closeBtn);
 
-            // Клик по самому тегу (уход на перерыв)
             tag.onclick = (e) => { if(e.target !== closeBtn) finishBreak(tag, timeString); };
+            
+            // 🧠 МАГИЯ ТАЙМЕРА ПРИ ПЕРЕЗАГРУЗКЕ
+            if (finishedSlots.includes(timeString)) {
+                tag.classList.add('finished');
+                
+                // Проверяем, не идет ли еще таймер в памяти браузера
+                const storageKey = `timer_target_${timeString}`;
+                const savedTarget = localStorage.getItem(storageKey);
+                
+                if (savedTarget && parseInt(savedTarget, 10) > Date.now()) {
+                    // Таймер еще жив! Продолжаем отсчет
+                    startIronTimer(tag, timeString, true);
+                } else {
+                    // Таймер уже вышел, просто пишем, что завершен
+                    textSpan.innerText = `${timeString} (Завершен)`;
+                    tag.style.color = 'var(--text-muted)';
+                }
+            }
             
             tagsContainer.appendChild(tag);
         });
@@ -427,13 +437,15 @@ function goToChannelSelection() {
 // 🏷️ ЛОГИКА ТЕГОВ (ФИНИШ И ОТМЕНА)
 // ========================================================
 
-// 1. Уход на перерыв (клик по самому тегу)
+// Уход на перерыв (клик по самому тегу)
 async function finishBreak(tagElement, timeString) {
     if (tagElement.classList.contains('finished')) return;
 
     if (confirm(`Выйти в перерыв? ${timeString}`)) {
-        tagElement.classList.add('finished');
-        // Как только добавится класс, крестик исчезнет благодаря нашему CSS
+        tagElement.classList.add('finished'); 
+        
+        // 👈 ЗАПУСКАЕМ ТАЙМЕР
+        startIronTimer(tagElement, timeString);
         
         await supabaseClient.from('global_log').insert([{
             operator_name: currentOperatorName,
@@ -568,4 +580,64 @@ async function clearAllBookings() {
     } finally {
         document.body.style.cursor = 'default';
     }
+}
+
+// ========================================================
+// ⏱️ АБСОЛЮТНЫЙ И ГИБКИЙ ТАЙМЕР ПЕРЕРЫВА
+// ========================================================
+
+// 1. Высчитываем длительность из строки (например, "10:00-10:15" -> 15)
+function getSlotDuration(timeString) {
+    const [start, end] = timeString.split('-');
+    const [startH, startM] = start.split(':').map(Number);
+    const [endH, endM] = end.split(':').map(Number);
+
+    const startDate = new Date();
+    startDate.setHours(startH, startM, 0, 0);
+
+    const endDate = new Date();
+    endDate.setHours(endH, endM, 0, 0);
+
+    // Если перерыв переходит через полночь (например, 23:50-00:20)
+    if (endDate < startDate) endDate.setDate(endDate.getDate() + 1);
+
+    return Math.round((endDate - startDate) / 60000);
+}
+
+// 2. Запуск неубиваемого таймера
+function startIronTimer(tagElement, timeString, isRestore = false) {
+    const textSpan = tagElement.querySelector('span');
+    const storageKey = `timer_target_${timeString}`;
+    
+    let targetTime;
+
+    if (isRestore && localStorage.getItem(storageKey)) {
+        // Восстанавливаем таймер после F5
+        targetTime = parseInt(localStorage.getItem(storageKey), 10);
+    } else {
+        // Создаем новый таймер
+        const durationMinutes = getSlotDuration(timeString);
+        targetTime = Date.now() + (durationMinutes * 60 * 1000);
+        localStorage.setItem(storageKey, targetTime.toString());
+    }
+
+    tagElement.style.background = 'rgba(0, 174, 239, 0.15)'; // Подсвечиваем активный таймер
+    tagElement.style.border = '1px solid #00aeef';
+
+    const intervalId = setInterval(() => {
+        const remaining = targetTime - Date.now();
+
+        if (remaining <= 0) {
+            clearInterval(intervalId);
+            localStorage.removeItem(storageKey);
+            textSpan.innerText = `${timeString} (Завершен)`;
+            tagElement.style.background = 'rgba(255, 255, 255, 0.05)';
+            tagElement.style.border = '1px solid var(--border-color)';
+            tagElement.style.color = 'var(--text-muted)';
+        } else {
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            textSpan.innerText = `${timeString} ⏳ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }, 1000);
 }

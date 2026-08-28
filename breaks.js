@@ -73,21 +73,24 @@ window.addEventListener('DOMContentLoaded', async () => {
         // Если это 'op' или 'admin' — пускаем!
         loader.classList.add('hide');
 
-        // 🧠 ПРОВЕРЯЕМ ПАМЯТЬ БРАУЗЕРА
-        const savedChannel = localStorage.getItem('savedChannel');
-        if (savedChannel) {
-            // Если канал уже был выбран — сразу загружаем его
-            selectChannel(savedChannel);
-        } else {
-            // Если нет — показываем окно выбора
-            channelScreen.classList.remove('hide');
-        }
-
-        // 👑 ВСТАВЛЯЕМ СЮДА: Если это админ, показываем ему нужные кнопки
+        // 👑 СНАЧАЛА: Если это админ, показываем ему нужные кнопки
         if (currentRole === 'admin') {
             if (btnBackToId) btnBackToId.classList.remove('hide');
             const btnAdminPanel = document.getElementById('btn-admin-panel');
             if (btnAdminPanel) btnAdminPanel.classList.remove('hide');
+        }
+
+        // 🧠 ПРОВЕРЯЕМ ПАМЯТЬ БРАУЗЕРА
+        const savedChannel = localStorage.getItem('savedChannel');
+        const isAdminPanelOpen = localStorage.getItem('isAdminPanelOpen'); // 👈 Ищем флаг админки
+
+        // 👈 НОВАЯ ЛОГИКА МАРШРУТИЗАЦИИ (С учетом автовозврата в админку)
+        if (currentRole === 'admin' && isAdminPanelOpen === 'true') {
+            openAdminPanel();
+        } else if (savedChannel) {
+            selectChannel(savedChannel);
+        } else {
+            channelScreen.classList.remove('hide');
         }
 
     } catch (err) {
@@ -682,27 +685,43 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
 // 👑 ПАНЕЛЬ АДМИНИСТРАТОРА (МОНИТОРИНГ)
 // ========================================================
 let currentAdminChannel = 'HL';
+let adminRefreshInterval = null; // 👈 ДОБАВИЛИ ПЕРЕМЕННУЮ ДЛЯ ТАЙМЕРА
 
 function openAdminPanel() {
     document.getElementById('channel-screen').classList.add('hide');
     document.getElementById('admin-app').classList.remove('hide');
     
-    // Синхронизируем иконку темы при входе в админку
+    // 👈 ЗАПОМИНАЕМ, ЧТО МЫ В АДМИНКЕ
+    localStorage.setItem('isAdminPanelOpen', 'true'); 
+    
     const adminThemeBtn = document.getElementById('admin-theme-btn');
     if (adminThemeBtn) {
         adminThemeBtn.innerText = document.body.classList.contains('dark-mode') ? '🌙' : '☀️';
     }
 
-    loadAdminMonitor('HL'); // По умолчанию грузим Горячую линию
+    // Загружаем последний выбранный канал (или HL по умолчанию)
+    const savedAdminChannel = localStorage.getItem('lastAdminChannel') || 'HL';
+    loadAdminMonitor(savedAdminChannel); 
+    
+    // 👈 ЗАПУСКАЕМ РАДАР (Каждые 30 секунд обновляем данные без перезагрузки страницы)
+    if (adminRefreshInterval) clearInterval(adminRefreshInterval);
+    adminRefreshInterval = setInterval(() => {
+        loadAdminMonitor(currentAdminChannel);
+    }, 30000);
 }
 
 function closeAdminPanel() {
     document.getElementById('admin-app').classList.add('hide');
     document.getElementById('channel-screen').classList.remove('hide');
+    
+    // 👈 СТИРАЕМ ПАМЯТЬ И ВЫКЛЮЧАЕМ РАДАР
+    localStorage.setItem('isAdminPanelOpen', 'false');
+    if (adminRefreshInterval) clearInterval(adminRefreshInterval);
 }
 
 async function loadAdminMonitor(channel) {
     currentAdminChannel = channel;
+    localStorage.setItem('lastAdminChannel', channel); // 👈 СОХРАНЯЕМ ВЫБРАННЫЙ КАНАЛ В ПАМЯТЬ
     
     // Переключаем активные табы
     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));

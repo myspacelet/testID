@@ -461,3 +461,88 @@ async function cancelBooking(tagElement, timeString) {
         }
     }
 }
+// ========================================================
+// 🗑️ МАССОВАЯ ОТМЕНА БРОНЕЙ
+// ========================================================
+async function clearAllBookings() {
+    // 1. Показываем то самое важное предупреждение
+    if (!confirm('Вы уверены, что хотите отменить все забронированные перерывы?\n\nВАЖНО: Уже отгулянные (завершенные) перерывы не удалятся и станут доступны только в следующей смене!')) {
+        return; // Если нажали "Отмена" - прерываем функцию
+    }
+
+    try {
+        document.body.style.cursor = 'wait'; // Меняем курсор на загрузку
+
+        // 2. Получаем все активные брони текущего оператора в этом канале
+        const { data: activeBookings, error: bookingsError } = await supabaseClient
+            .from('active_breaks')
+            .select('time_slot')
+            .eq('channel', selectedChannel)
+            .eq('user_id', currentUser.id);
+
+        if (bookingsError) throw bookingsError;
+
+        if (!activeBookings || activeBookings.length === 0) {
+            alert("У вас нет активных броней для отмены.");
+            return;
+        }
+
+        // 3. Узнаем, какие из них УЖЕ отгуляны (ищем ФИНИШ)
+        const { data: finishLogs, error: logsError } = await supabaseClient
+            .from('global_log')
+            .select('time_slot')
+            .eq('channel', selectedChannel)
+            .eq('user_id', currentUser.id)
+            .eq('action', 'ФИНИШ');
+
+        if (logsError) throw logsError;
+
+        const finishedSlots = finishLogs ? finishLogs.map(l => l.time_slot) : [];
+
+        // 4. Оставляем только те слоты, которые ЕЩЕ НЕ завершены
+        const slotsToDelete = activeBookings
+            .map(b => b.time_slot)
+            .filter(slot => !finishedSlots.includes(slot));
+
+        if (slotsToDelete.length === 0) {
+            alert("Все ваши перерывы уже использованы. Отменять нечего.");
+            return;
+        }
+
+        // 5. Удаляем незавершенные слоты из временной таблицы одним махом (через .in)
+        const { error: deleteError } = await supabaseClient
+            .from('active_breaks')
+            .delete()
+            .in('time_slot', slotsToDelete)
+            .eq('channel', selectedChannel)
+            .eq('user_id', currentUser.id);
+
+        if (deleteError) throw deleteError;
+
+        // 6. Массово пишем "ОТМЕНА" в вечный лог
+        const logsToInsert = slotsToDelete.map(slot => ({
+            operator_name: currentOperatorName,
+            channel: selectedChannel,
+            action: 'ОТМЕНА',
+            time_slot: slot,
+            user_id: currentUser.id
+        }));
+
+        const { error: insertError } = await supabaseClient
+            .from('global_log')
+            .insert(logsToInsert);
+
+        if (insertError) throw insertError;
+
+        console.log(`❌ Массовая отмена слотов: ${slotsToDelete.join(', ')}`);
+        
+        // 7. Перерисовываем интерфейс (освобожденные кнопки снова станут кликабельными)
+        renderOperatorUI();
+
+    } catch (err) {
+        console.error("Ошибка при массовой отмене:", err);
+        alert("Произошла ошибка при отмене перерывов.");
+    } finally {
+        document.body.style.cursor = 'default'; // Возвращаем обычный курсор
+    }
+}

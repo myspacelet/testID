@@ -53,10 +53,13 @@
         
         <div id="op-channel-display" style="font-weight: 700; color: #00aeef; font-size: 15px; letter-spacing: 1px; text-transform: uppercase;"></div>
         
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <button class="btn-back-channel" onclick="goToChannelSelection()" title="Сменить канал">◀️ Сменить канал</button>
-            <button id="theme-btn" class="btn-theme-toggle" onclick="toggleTheme()">☀️</button>
-            <button class="btn-mac-logout" onclick="logout()">🚪 ВЫЙТИ</button>
+        <div class="header-actions-group">
+                    <!-- 🆕 Новая кнопка массовой очистки -->
+                    <button class="btn-clear-all" onclick="clearAllBookings()" title="Очистить неиспользованные брони">🗑️ Очистить всё</button>
+                    
+                    <button class="btn-back-channel" onclick="goToChannelSelection()" title="Сменить канал">◀️ Сменить канал</button>
+                    <button id="theme-btn" class="btn-theme-toggle" onclick="toggleTheme()">☀️</button>
+                    <button class="btn-mac-logout" onclick="logout()">🚪 ВЫЙТИ</button>
         </div>
     </div>
 

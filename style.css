@@ -1420,3 +1420,67 @@ body.dark-mode .btn-admin-action {
     letter-spacing: 1px;
     font-size: 18px;
 }
+
+/* ========================================================
+   ⚙️ РЕДАКТОР ИНТЕРВАЛОВ И УНИКАЛЬНЫЕ СЛОТЫ
+   ======================================================== */
+.ie-slot-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: var(--bg-element);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+    transition: 0.2s;
+}
+
+.ie-slot-item:hover {
+    background: var(--bg-hover);
+}
+
+.ie-btn-delete {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: none;
+    border-radius: 6px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.ie-btn-delete:hover {
+    background: #ef4444;
+    color: white;
+}
+
+/* 🦄 Оформление уникальных слотов (Везде) */
+.mac-slot.unique-slot,
+.ie-slot-item.unique-slot {
+    background: rgba(168, 85, 247, 0.08) !important;
+    color: #9333ea !important;
+    border: 1px dashed #a855f7 !important;
+}
+
+body.dark-mode .mac-slot.unique-slot,
+body.dark-mode .ie-slot-item.unique-slot {
+    background: rgba(168, 85, 247, 0.15) !important;
+    color: #c084fc !important;
+    border-color: #a855f7 !important;
+}
+
+/* Перебиваем стили при наведении на уникальный слот */
+.mac-slot.unique-slot:hover,
+.mac-slot.unique-slot.my {
+    background: rgba(168, 85, 247, 0.2) !important;
+    border: 2px solid #a855f7 !important;
+    color: #c084fc !important;
+}

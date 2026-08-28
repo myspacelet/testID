@@ -112,22 +112,22 @@ function selectChannel(channelCode) {
 const CHANNEL_CONFIG = {
     'HL': {
         columns: [
-            { type: 'break10', title: 'Перерывы (10 мин)', limit: 4 },
-            { type: 'lunch30', title: 'Обеды (30 мин)', limit: 1 }
+            { type: 'break10', title: 'Перерывы', limit: 4 },
+            { type: 'lunch30', title: 'Обеды', limit: 1 }
         ]
     },
     'LIVE': {
         columns: [
-            { type: 'break15', title: 'Перерывы (15 мин)', limit: 2 },
-            { type: 'break20', title: 'Перерывы (20 мин)', limit: 1 },
-            { type: 'lunch40', title: 'Обеды (40 мин)', limit: 1 }
+            { type: 'break15', title: 'Перерывы', limit: 2 },
+            { type: 'break20', title: 'Перерывы', limit: 1 },
+            { type: 'lunch40', title: 'Обеды', limit: 1 }
         ]
     },
     'NIGHT': {
         columns: [
-            { type: 'break15', title: 'Перерывы (15 мин)', limit: 2 },
-            { type: 'break20', title: 'Перерывы (20 мин)', limit: 1 },
-            { type: 'lunch40', title: 'Обеды (40 мин)', limit: 1 }
+            { type: 'break15', title: 'Перерывы', limit: 2 },
+            { type: 'break20', title: 'Перерывы', limit: 1 },
+            { type: 'lunch40', title: 'Обеды', limit: 1 }
         ]
     }
 };
@@ -185,10 +185,10 @@ async function renderOperatorUI() {
     currentConfig.forEach(col => mySelections[col.type] = 0);
 
     try {
-        // 2. Качаем данные из базы
+        // 2. Качаем данные из базы (Добавили is_unique)
         const { data: intervals, error } = await supabaseClient
             .from('intervals_config')
-            .select('type, time_slot')
+            .select('type, time_slot, is_unique')
             .eq('channel', selectedChannel)
             .order('time_slot', { ascending: true });
 
@@ -210,30 +210,36 @@ async function renderOperatorUI() {
             
         const finishedSlots = finishLogs ? finishLogs.map(l => l.time_slot) : [];
 
-        // Вспомогательная функция сборки кнопки
-        const buildSlotHTML = (slot, type) => {
+        // Вспомогательная функция сборки кнопки (Добавлена логика unique)
+        const buildSlotHTML = (slotObj, type) => {
+            const slot = slotObj.time_slot;
+            const uClass = slotObj.is_unique ? ' unique-slot' : ''; // 🦄
             const booking = activeBookings.find(b => b.time_slot === slot);
+            
             if (booking) {
                 if (booking.user_id === currentUser.id) {
-                    return `<div class="mac-slot my" onclick="handleSlotClick(this, '${type}', '${slot}')">${slot}</div>`;
+                    return `<div class="mac-slot my${uClass}" onclick="handleSlotClick(this, '${type}', '${slot}')">${slot}</div>`;
                 } else {
-                    return `<div class="mac-slot booked" title="Занято: ${booking.operator_name}">${slot}</div>`;
+                    return `<div class="mac-slot booked${uClass}" title="Занято: ${booking.operator_name}">${slot}</div>`;
                 }
             }
-            return `<div class="mac-slot" onclick="handleSlotClick(this, '${type}', '${slot}')">${slot}</div>`;
+            return `<div class="mac-slot${uClass}" onclick="handleSlotClick(this, '${type}', '${slot}')">${slot}</div>`;
         };
 
         // 3. Распределяем интервалы по колонкам
         currentConfig.forEach(col => {
             const container = document.getElementById(`container-${col.type}`);
-            const typeIntervals = intervals.filter(i => i.type === col.type).map(i => i.time_slot);
             
-            container.innerHTML = typeIntervals.length > 0 
-                ? typeIntervals.map(slot => buildSlotHTML(slot, col.type)).join('') 
+            // Фильтруем объекты целиком, а не только строки времени
+            const typeIntervalsObj = intervals.filter(i => i.type === col.type);
+            const typeIntervalsStr = typeIntervalsObj.map(i => i.time_slot); // Строки нужны для подсчета лимитов
+            
+            container.innerHTML = typeIntervalsObj.length > 0 
+                ? typeIntervalsObj.map(slotObj => buildSlotHTML(slotObj, col.type)).join('') 
                 : '<div style="text-align:center; font-size:12px; color:var(--text-muted);">Нет интервалов</div>';
                 
             // Подсчитываем, сколько мы уже заняли в этой колонке
-            mySelections[col.type] = activeBookings.filter(b => b.user_id === currentUser.id && typeIntervals.includes(b.time_slot)).length;
+            mySelections[col.type] = activeBookings.filter(b => b.user_id === currentUser.id && typeIntervalsStr.includes(b.time_slot)).length;
         });
 
         updateCounters();
@@ -823,5 +829,125 @@ async function kickOperator(userId, opName) {
     } catch (e) {
         console.error("Ошибка при сбросе оператора:", e);
         alert("❌ Ошибка при сбросе оператора.");
+    }
+}
+
+// ========================================================
+// ⚙️ РЕДАКТОР ИНТЕРВАЛОВ (АДМИН)
+// ========================================================
+let currentEditorChannel = 'HL';
+
+function openIntervalEditorModal() {
+    document.getElementById('modal-interval-editor').classList.add('open');
+    loadIntervalEditor('HL');
+}
+
+function closeIntervalEditor(event) {
+    if (event === null || event.target.id === 'modal-interval-editor') {
+        document.getElementById('modal-interval-editor').classList.remove('open');
+    }
+}
+
+async function loadIntervalEditor(channel) {
+    currentEditorChannel = channel;
+    
+    // Переключаем активные табы
+    document.querySelectorAll('#modal-interval-editor .admin-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(`ie-tab-${channel}`).classList.add('active');
+
+    const container = document.getElementById('ie-lists-container');
+    container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">⏳ Загрузка интервалов...</div>';
+
+    // Обновляем select доступных типов интервалов для этого канала
+    const typeSelect = document.getElementById('ie-new-type');
+    typeSelect.innerHTML = CHANNEL_CONFIG[channel].columns.map(c => `<option value="${c.type}">${c.title}</option>`).join('');
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('intervals_config')
+            .select('type, time_slot, is_unique')
+            .eq('channel', channel)
+            .order('time_slot', { ascending: true });
+
+        if (error) throw error;
+        
+        let html = '';
+        CHANNEL_CONFIG[channel].columns.forEach(col => {
+            const colIntervals = data.filter(i => i.type === col.type);
+            html += `<div style="margin-bottom: 20px;">
+                        <div class="small-label" style="margin-bottom: 8px; color: var(--text-main); font-size: 12px !important;">
+                            ${col.title} <span style="opacity: 0.5;">(${colIntervals.length})</span>
+                        </div>`;
+            if (colIntervals.length === 0) {
+                html += `<div style="font-size:12px; color:var(--text-muted); padding: 5px;">Пусто</div>`;
+            } else {
+                html += colIntervals.map(i => `
+                    <div class="ie-slot-item ${i.is_unique ? 'unique-slot' : ''}">
+                        <span>${i.time_slot} ${i.is_unique ? '✨' : ''}</span>
+                        <button class="ie-btn-delete" onclick="deleteInterval('${i.type}', '${i.time_slot}')" title="Удалить слот">✕</button>
+                    </div>
+                `).join('');
+            }
+            html += `</div>`;
+        });
+        container.innerHTML = html;
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div style="text-align:center; color: var(--danger);">❌ Ошибка связи со спутником</div>`;
+    }
+}
+
+async function addNewInterval() {
+    const type = document.getElementById('ie-new-type').value;
+    const timeSlot = document.getElementById('ie-new-time').value.trim();
+    const isUnique = document.getElementById('ie-new-unique').checked;
+
+    if (!/^\d{2}:\d{2}-\d{2}:\d{2}$/.test(timeSlot)) {
+        alert("❌ Ошибка: Введите время строго в формате ЧЧ:ММ-ЧЧ:ММ (Например: 14:00-14:15)");
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient.from('intervals_config').insert([{
+            channel: currentEditorChannel,
+            type: type,
+            time_slot: timeSlot,
+            is_unique: isUnique
+        }]);
+
+        if (error) {
+            if (error.code === '23505') throw new Error("Такой интервал уже существует!"); 
+            throw error;
+        }
+        
+        // Очищаем форму и перезагружаем список
+        document.getElementById('ie-new-time').value = '';
+        document.getElementById('ie-new-unique').checked = false;
+        loadIntervalEditor(currentEditorChannel);
+        
+        // Фоновое обновление дашборда операторов, чтобы не перезагружать страницу
+        if (selectedChannel === currentEditorChannel) renderOperatorUI();
+
+    } catch (err) {
+        alert("❌ Ошибка при добавлении: " + err.message);
+    }
+}
+
+async function deleteInterval(type, timeSlot) {
+    if (!confirm(`Точно удалить интервал ${timeSlot}?\nОн исчезнет у всех операторов.`)) return;
+    try {
+        const { error } = await supabaseClient
+            .from('intervals_config')
+            .delete()
+            .eq('channel', currentEditorChannel)
+            .eq('type', type)
+            .eq('time_slot', timeSlot);
+
+        if (error) throw error;
+
+        loadIntervalEditor(currentEditorChannel);
+        if (selectedChannel === currentEditorChannel) renderOperatorUI();
+    } catch (err) {
+        alert("❌ Ошибка при удалении: " + err.message);
     }
 }

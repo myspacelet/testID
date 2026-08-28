@@ -121,7 +121,7 @@
                 <button id="adm-tab-NIGHT" class="admin-tab" onclick="loadAdminMonitor('NIGHT')">🌙 НОЧЬ</button>
             </div>
             <div class="admin-actions">
-                <button class="btn-admin-action">Редактор интервалов</button>
+                <button class="btn-admin-action" onclick="openIntervalEditorModal()">Редактор интервалов</button>
                 <button class="btn-admin-action">Аккаунты</button>
                 <button class="btn-admin-action" style="color: #ff5f56; border-color: rgba(255,95,86,0.3);">Глобальный сброс</button>
             </div>
@@ -138,6 +138,47 @@
             </div>
         </div>
 
+    </div>
+</div>
+<!-- ⚙️ МОДАЛКА РЕДАКТОРА ИНТЕРВАЛОВ -->
+<div id="modal-interval-editor" class="modal-overlay" onclick="closeIntervalEditor(event)">
+    <div class="modal-content" style="max-width: 550px; max-height: 85vh; display: flex; flex-direction: column;" onclick="event.stopPropagation()">
+        <button class="modal-close" onclick="closeIntervalEditor(null)">×</button>
+        <h3 class="input-label" style="font-size: 18px; margin-bottom: 15px; color: var(--text-title);">⚙️ Редактор интервалов</h3>
+
+        <!-- Переключатель каналов внутри модалки -->
+        <div class="admin-tabs" style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
+            <button id="ie-tab-HL" class="admin-tab active" onclick="loadIntervalEditor('HL')">📞 ЛИНИЯ</button>
+            <button id="ie-tab-LIVE" class="admin-tab" onclick="loadIntervalEditor('LIVE')">💬 ЧАТ</button>
+            <button id="ie-tab-NIGHT" class="admin-tab" onclick="loadIntervalEditor('NIGHT')">🌙 НОЧЬ</button>
+        </div>
+
+        <!-- Контейнер для списков (скроллируемый) -->
+        <div id="ie-lists-container" style="overflow-y: auto; flex: 1; margin-bottom: 20px; padding-right: 10px;">
+            <!-- Списки будут генерироваться скриптом -->
+        </div>
+
+        <!-- Форма добавления нового интервала -->
+        <div style="background: var(--bg-hover); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                <div style="flex: 1;">
+                    <label class="small-label">Тип интервала</label>
+                    <select id="ie-new-type" class="input-textarea single-line w-100" style="padding: 0 10px;"></select>
+                </div>
+                <div style="flex: 1;">
+                    <label class="small-label">Время (Напр: 12:00-12:15)</label>
+                    <input type="text" id="ie-new-time" class="input-textarea single-line w-100" style="padding: 0 10px;" placeholder="00:00-00:00">
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: #a855f7;">
+                    <input type="checkbox" id="ie-new-unique" style="width: 16px; height: 16px; accent-color: #a855f7;">
+                    ✨ Уникальный интервал
+                </label>
+                <button onclick="addNewInterval()" class="btn-main btn-primary" style="padding: 8px 20px; flex: none;">➕ Добавить</button>
+            </div>
+        </div>
     </div>
 </div>
 </body>

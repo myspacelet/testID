@@ -1037,6 +1037,17 @@ function setAccountsFilter(filter) {
     currentAccountsFilter = filter;
     document.querySelectorAll('#modal-accounts .admin-tab').forEach(t => t.classList.remove('active'));
     document.getElementById(`acc-tab-${filter}`).classList.add('active');
+
+    // 👇 Показываем кнопку "Подтвердить всех" ТОЛЬКО если выбрана вкладка 'pending'
+    const btnConfirmAll = document.getElementById('btn-confirm-all');
+    if (btnConfirmAll) {
+        if (filter === 'pending') {
+            btnConfirmAll.classList.remove('hide');
+        } else {
+            btnConfirmAll.classList.add('hide');
+        }
+    }
+
     renderAccounts();
 }
 
@@ -1209,5 +1220,55 @@ async function globalResetToday() {
         alert("❌ Ошибка при выполнении глобального сброса.");
     } finally {
         document.body.style.cursor = 'default';
+    }
+}
+
+// ========================================================
+// ✅ МАССОВОЕ ПОДТВЕРЖДЕНИЕ АККАУНТОВ
+// ========================================================
+async function confirmAllPendingAccounts() {
+    // Находим всех, кто еще не подтвержден
+    const pendingUsers = allAccountsData.filter(u => !u.is_confirmed);
+    
+    if (pendingUsers.length === 0) {
+        alert('Нет пользователей, ожидающих подтверждения.');
+        return;
+    }
+
+    if (!confirm(`Вы действительно хотите подтвердить все заявки (${pendingUsers.length} шт.)?`)) return;
+
+    const btn = document.getElementById('btn-confirm-all');
+    const originalText = btn.innerHTML;
+    
+    // Красивая анимация загрузки на кнопке
+    btn.innerHTML = '⏳ Обработка...';
+    btn.style.pointerEvents = 'none';
+
+    try {
+        // Достаем все ID неподтвержденных пользователей
+        const userIds = pendingUsers.map(u => u.id);
+        
+        // Отправляем пакетный запрос в Supabase (обновляем все ID за один раз)
+        const { error } = await supabaseClient
+            .from('profiles')
+            .update({ is_confirmed: true })
+            .in('id', userIds);
+
+        if (error) throw error;
+
+        // Обновляем локальные данные, чтобы не скачивать базу заново
+        pendingUsers.forEach(u => u.is_confirmed = true);
+        
+        // Перерисовываем список
+        renderAccounts();
+        alert('🎉 Все новые операторы успешно подтверждены!');
+        
+    } catch (err) {
+        console.error("Ошибка при массовом подтверждении:", err);
+        alert("❌ Ошибка: " + err.message);
+    } finally {
+        // Возвращаем кнопку в исходное состояние
+        btn.innerHTML = originalText;
+        btn.style.pointerEvents = 'auto';
     }
 }

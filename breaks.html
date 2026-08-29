@@ -198,11 +198,16 @@
             </div>
         </div>
 
-        <!-- Фильтры статусов -->
-        <div class="admin-tabs" style="margin-bottom: 15px;">
-            <button id="acc-tab-all" class="admin-tab active" onclick="setAccountsFilter('all')">Все</button>
-            <button id="acc-tab-pending" class="admin-tab" onclick="setAccountsFilter('pending')">Ожидают подтверждения</button>
-            <button id="acc-tab-confirmed" class="admin-tab" onclick="setAccountsFilter('confirmed')">Подтвержденные</button>
+        <!-- Фильтры статусов И кнопка массового подтверждения -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div class="admin-tabs" style="margin-bottom: 0;">
+                <button id="acc-tab-all" class="admin-tab active" onclick="setAccountsFilter('all')">Все</button>
+                <button id="acc-tab-pending" class="admin-tab" onclick="setAccountsFilter('pending')">Ожидают подтверждения</button>
+                <button id="acc-tab-confirmed" class="admin-tab" onclick="setAccountsFilter('confirmed')">Подтвержденные</button>
+            </div>
+            
+            <!-- 👇 Новая маковская кнопка (по умолчанию скрыта классом hide) -->
+            <button id="btn-confirm-all" class="hide" style="background: #22c55e; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(34,197,94,0.3);" onclick="confirmAllPendingAccounts()" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">✅ Подтвердить всех</button>
         </div>
 
         <!-- Список учетных записей -->

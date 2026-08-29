@@ -59,13 +59,14 @@
         <div id="op-channel-display" class="channel-display-title"></div>
         
         <div class="header-actions-group">
-                    <!-- 🆕 Новая кнопка массовой очистки -->
-                    <button class="btn-clear-all" onclick="clearAllBookings()" title="Очистить неиспользованные брони">🗑️ Очистить всё</button>
-                    
-                    <button class="btn-back-channel" onclick="goToChannelSelection()" title="Сменить канал">◀️ Сменить канал</button>
-                    <button id="theme-btn" class="btn-theme-toggle" onclick="toggleTheme()">☀️</button>
-                    <button class="btn-mac-logout" onclick="logout()">🚪 ВЫЙТИ</button>
-        </div>
+                <!-- 👇 Добавили кнопку рефреша -->
+                <button class="btn-theme-toggle" onclick="manualRefresh(this)" title="Обновить данные">🔄</button>
+                
+                <button id="theme-btn" class="btn-theme-toggle" onclick="toggleTheme()" title="Сменить тему">☀️</button>
+                <button class="btn-back-channel" id="btn-back-to-id" class="hide" style="font-weight: 600; color: #a855f7; border-color: rgba(168, 85, 247, 0.3);">🚌 В ИД 2.0</button>
+                <button class="btn-back-channel" onclick="goToChannelSelection()">◀ В меню</button>
+                <button class="btn-mac-logout" onclick="logout()">🚪 ВЫЙТИ</button>
+            </div>
     </div>
 
     <!-- Область оператора (Занимает всё оставшееся место) -->
@@ -105,9 +106,12 @@
         <div class="channel-display-title" style="color: #ff5f56;">МОНИТОРИНГ</div>
         
         <div class="header-actions-group">
-            <button id="admin-theme-btn" class="btn-theme-toggle" onclick="toggleTheme()">☀️</button>
-            <button class="btn-back-channel" onclick="closeAdminPanel()">◀️ В меню</button>
-            <button class="btn-mac-logout" onclick="logout()">🚪 ВЫЙТИ</button>
+                <!-- 👇 Добавили кнопку рефреша -->
+                <button class="btn-theme-toggle" onclick="manualRefresh(this)" title="Обновить данные">🔄</button>
+                
+                <button id="admin-theme-btn" class="btn-theme-toggle" onclick="toggleTheme()" title="Сменить тему">☀️</button>
+                <button class="btn-back-channel" onclick="closeAdminPanel()">◀ В меню</button>
+                <button class="btn-mac-logout" onclick="logout()">🚪 ВЫЙТИ</button>
         </div>
     </div>
 

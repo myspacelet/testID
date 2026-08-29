@@ -1588,3 +1588,33 @@ async function toggleUserLimit(userId, isNoLimit) {
         alert("❌ Ошибка при сохранении настроек.");
     }
 }
+
+// ========================================================
+// 🔄 РУЧНОЕ ОБНОВЛЕНИЕ ДАННЫХ (АДМИН И ОПЕРАТОР)
+// ========================================================
+function manualRefresh(btnElement) {
+    // Крутим кнопку для визуального отклика
+    if (btnElement) {
+        btnElement.style.transform = 'rotate(360deg)';
+        btnElement.style.transition = 'transform 0.4s ease';
+        setTimeout(() => {
+            btnElement.style.transition = 'none';
+            btnElement.style.transform = 'rotate(0deg)';
+        }, 400);
+    }
+
+    const isAdminOpen = localStorage.getItem('isAdminPanelOpen') === 'true';
+    
+    // Определяем, что именно нужно обновить
+    if (isAdminOpen && currentRole === 'admin') {
+        if (currentAdminChannel) {
+            loadAdminMonitor(currentAdminChannel);
+            console.log('🔄 Админка обновлена вручную');
+        }
+    } else {
+        if (selectedChannel) {
+            renderOperatorUI();
+            console.log('🔄 Сетка оператора обновлена вручную');
+        }
+    }
+}

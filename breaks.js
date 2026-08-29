@@ -792,12 +792,21 @@ async function loadAdminMonitor(channel) {
             .select('*')
             .eq('channel', channel);
 
-       // 2. Получаем логи СТАРТОВ и ЗАВЕРШЕНИЙ для точного статуса
+        // 🕰 Вычисляем начало сегодняшнего дня по МСК (чтобы не тянуть вчерашние статусы)
+        const now = new Date();
+        const mskOffset = 3 * 60 * 60 * 1000; 
+        const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
+        const todayStr = nowMsk.toISOString().split('T')[0];
+        const startOfDayMsk = new Date(`${todayStr}T00:00:00+03:00`).toISOString();
+
+        // 2. Получаем логи СТАРТОВ и ЗАВЕРШЕНИЙ только за СЕГОДНЯ
         const { data: actionLogs, error: err2 } = await supabaseClient
             .from('global_log')
             .select('*')
             .eq('channel', channel)
-            .in('action', ['СТАРТ', 'ЗАВЕРШЕН']); // 👈 Ищем оба лога
+            .gte('created_at', startOfDayMsk) // 👈 Защита от старых багов и вчерашних логов
+            .in('action', ['СТАРТ', 'ЗАВЕРШЕН'])
+            .order('created_at', { ascending: true }); // 👈 Хронологический порядок
 
         if (err1 || err2) throw new Error("Ошибка БД");
 
@@ -808,15 +817,11 @@ async function loadAdminMonitor(channel) {
             ops[b.user_id].slots.push(b.time_slot);
         });
 
-        // Определяем точный статус каждого слота по логам
+        // 🧠 Определяем точный статус: последнее действие в базе побеждает!
         const slotStatuses = {}; 
         actionLogs.forEach(l => {
             const key = `${l.user_id}_${l.time_slot}`;
-            if (l.action === 'ЗАВЕРШЕН') {
-                slotStatuses[key] = 'ЗАВЕРШЕН';
-            } else if (l.action === 'СТАРТ' && slotStatuses[key] !== 'ЗАВЕРШЕН') {
-                slotStatuses[key] = 'СТАРТ';
-            }
+            slotStatuses[key] = l.action; // Просто перезаписываем: что было последним, то и статус
         });
 
         // 4. Отрисовываем HTML

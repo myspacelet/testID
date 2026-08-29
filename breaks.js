@@ -35,9 +35,23 @@ window.addEventListener('DOMContentLoaded', async () => {
         // 2. Узнаем, кто именно зашел (ищем роль, имя и ЕДИНСТВЕННЫЙ статус)
         const { data: profile, error } = await supabaseClient
             .from('profiles')
-            .select('role, full_name, is_confirmed') // 👈 Убрали approved отсюда
+            .select('role, full_name, is_confirmed, no_limit') // 👈 ДОБАВИЛИ no_limit СЮДА
             .eq('id', currentUser.id)
             .single();
+            
+        // ... (чуть ниже, после if (error || !profile))
+        
+        // 🛑 ЕДИНСТВЕННАЯ И БРОНЕБОЙНАЯ ПРОВЕРКА ДОСТУПА
+        if (profile.is_confirmed === false) {
+            await supabaseClient.auth.signOut();
+            alert('⏳ Ваш аккаунт ожидает подтверждения администратором.');
+            window.location.href = 'index.html';
+            return;
+        }
+
+        currentRole = profile.role;
+        currentOperatorName = profile.full_name || 'Оператор';
+        currentUser.no_limit = profile.no_limit; // 👈 СОХРАНЯЕМ VIP-СТАТУС ДЛЯ ПРОВЕРОК
 
         // Базовая проверка: если профиля нет или ошибка связи
         if (error || !profile) { // 👈 Убрали проверку approved !== true
@@ -310,10 +324,30 @@ async function renderOperatorUI() {
         gridContainer.innerHTML = '<div style="color:var(--danger); text-align:center; width: 100%;">Ошибка загрузки базы данных</div>';
     }
 }
-
 // Обработка клика по слоту
 async function handleSlotClick(element, type, timeString) {
     if (element.classList.contains('booked') || element.classList.contains('my')) return;
+
+    // ========================================================
+    // 🛑 ПРОВЕРКА НА ЛИМИТ: 1 ПЕРЕРЫВ В ЧАС
+    // Если у пользователя нет VIP-прав (no_limit !== true), проверяем его слоты
+    if (!currentUser.no_limit) {
+        const targetHour = timeString.split(':')[0]; // Вытаскиваем часы (например, "10")
+        
+        // 1. Ищем, есть ли у него УЖЕ забронированные синие слоты в этом часе на экране
+        const myActiveSlots = Array.from(document.querySelectorAll('.mac-slot.my'))
+            .map(el => el.innerText.split(':')[0]);
+            
+        // 2. Ищем, есть ли у него отгулянные перерывы (теги сверху) в этом часе
+        const myFinishedTags = Array.from(document.querySelectorAll('.my-tag'))
+            .map(el => el.innerText.split(':')[0]);
+
+        if (myActiveSlots.includes(targetHour) || myFinishedTags.includes(targetHour)) {
+            alert(`⛔ Лимит: 1 перерыв в час!\nВы уже брали или забронировали перерыв в интервале ${targetHour}:00 - ${targetHour}:59.\n\nЕсли это экстренная ситуация, попросите Администратора временно снять для вас лимит.`);
+            return; // Прерываем бронирование!
+        }
+    }
+    // ========================================================
 
     // Находим лимит для текущего типа слота (например, break15)
     const columnConfig = CHANNEL_CONFIG[selectedChannel].columns.find(c => c.type === type);

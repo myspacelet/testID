@@ -251,11 +251,11 @@ async function renderOperatorUI() {
                 }
             });
 
-            // Форматируем секунды в "ЧЧ ч ММ мин" или просто "ММ мин"
+            // Форматируем секунды в "ММ мин СС сек"
             const formatTime = (totalSecs) => {
-                const h = Math.floor(totalSecs / 3600);
-                const m = Math.floor((totalSecs % 3600) / 60);
-                return h > 0 ? `${h} ч ${m} мин` : `${m} мин`;
+                const m = Math.floor(totalSecs / 60);
+                const s = totalSecs % 60;
+                return totalSecs > 0 ? `${m} мин ${s} сек` : '0 мин';
             };
 
             const shiftEl = document.getElementById('stat-shift-time');

@@ -231,7 +231,7 @@ async function handleAuthSubmit() {
 
     if (statusMsg) {
         statusMsg.style.color = 'var(--text-muted)';
-        statusMsg.innerHTML = '⏳ Обработка запроса спутником...';
+        statusMsg.innerHTML = '⏳ Обработка запроса...';
     }
 
     if (currentAuthMode === 'register') {
@@ -881,7 +881,7 @@ async function findNearestStore() {
     }
 
     output.style.color = 'var(--text-muted)';
-    output.innerHTML = `⏳ Спутник ищет локацию "${userInput}"...`;
+    output.innerHTML = `⏳ Ищем локацию "${userInput}"...`;
 
     try {
         let clientCoords = null;
@@ -907,7 +907,7 @@ async function findNearestStore() {
         }
 
         if (!clientCoords) {
-            output.innerHTML = `⏳ Спутник ищет "${userInput}" через DaData...`;
+            output.innerHTML = `⏳ Ищу "${userInput}" через DaData...`;
             clientCoords = await fetchCoordinates(userInput);
         }
         

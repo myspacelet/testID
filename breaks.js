@@ -225,14 +225,14 @@ async function renderOperatorUI() {
 
         if (bookingsError) throw bookingsError;
 
-        const { data: finishLogs, error: logsError } = await supabaseClient
+        const { data: startLogs, error: logsError } = await supabaseClient
             .from('global_log')
             .select('time_slot')
             .eq('channel', selectedChannel)
             .eq('user_id', currentUser.id)
-            .eq('action', 'ФИНИШ');
+            .eq('action', 'СТАРТ'); // 👈
             
-        const finishedSlots = finishLogs ? finishLogs.map(l => l.time_slot) : [];
+        const finishedSlots = startLogs ? startLogs.map(l => l.time_slot) : [];
 
         // Вспомогательная функция сборки кнопки (Добавлена логика unique)
         const buildSlotHTML = (slotObj, type) => {
@@ -467,12 +467,12 @@ async function finishBreak(tagElement, timeString) {
         await supabaseClient.from('global_log').insert([{
             operator_name: currentOperatorName,
             channel: selectedChannel,
-            action: 'ФИНИШ',
+            action: 'СТАРТ', // 👈 ТЕПЕРЬ МЫ ЛОГИРУЕМ ИМЕННО СТАРТ ТАЙМЕРА
             time_slot: timeString,
             user_id: currentUser.id
         }]);
         
-        console.log(`✅ ФИНИШ записан: ${timeString}`);
+        console.log(`✅ СТАРТ записан: ${timeString}`);
     }
 }
 
@@ -539,17 +539,17 @@ async function clearAllBookings() {
             return;
         }
 
-        // 3. Узнаем, какие из них УЖЕ отгуляны (ищем ФИНИШ)
-        const { data: finishLogs, error: logsError } = await supabaseClient
+        // 3. Узнаем, какие из них УЖЕ начаты или отгуляны (ищем СТАРТ)
+        const { data: startLogs, error: logsError } = await supabaseClient
             .from('global_log')
             .select('time_slot')
             .eq('channel', selectedChannel)
             .eq('user_id', currentUser.id)
-            .eq('action', 'ФИНИШ');
+            .eq('action', 'СТАРТ'); // 👈
 
         if (logsError) throw logsError;
 
-        const finishedSlots = finishLogs ? finishLogs.map(l => l.time_slot) : [];
+        const finishedSlots = startLogs ? startLogs.map(l => l.time_slot) : [];
 
         // 4. Оставляем только те слоты, которые ЕЩЕ НЕ завершены
         const slotsToDelete = activeBookings
@@ -651,7 +651,7 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
     bigSlotDisplay.innerText = timeString;
     overlay.classList.remove('hide');
 
-    const updateDisplays = () => {
+    const updateDisplays = async () => { // 👈 ДОБАВИЛИ СЛОВО async
         const remaining = targetTime - Date.now();
 
         if (remaining <= 0) {
@@ -667,6 +667,19 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
             
             // Прячем оверлей
             overlay.classList.add('hide');
+
+            // 👈 НОВОЕ: ПИШЕМ "ЗАВЕРШЕН" В БАЗУ ДАННЫХ
+            // Защита от дублей, чтобы не спамить базу, если функция моргнет дважды
+            const { data } = await supabaseClient.from('global_log')
+                .select('id').eq('user_id', currentUser.id).eq('time_slot', timeString).eq('action', 'ЗАВЕРШЕН');
+            
+            if (!data || data.length === 0) {
+                await supabaseClient.from('global_log').insert([{
+                    operator_name: currentOperatorName, channel: selectedChannel,
+                    action: 'ЗАВЕРШЕН', time_slot: timeString, user_id: currentUser.id
+                }]);
+                console.log(`🛑 ЗАВЕРШЕН записан: ${timeString}`);
+            }
         } else {
             // ТАЙМЕР ИДЕТ
             const minutes = Math.floor(remaining / 60000);
@@ -740,7 +753,7 @@ async function loadAdminMonitor(channel) {
     document.getElementById(`adm-tab-${channel}`).classList.add('active');
 
     const listContainer = document.getElementById('admin-monitor-list');
-    listContainer.innerHTML = '<div style="padding:30px; text-align:center; color: var(--text-muted);">⏳ Синхронизация со спутником...</div>';
+    listContainer.innerHTML = '<div style="padding:30px; text-align:center; color: var(--text-muted);">⏳ Синхронизация...</div>';
 
     try {
         // 1. Получаем все активные брони для канала
@@ -749,56 +762,47 @@ async function loadAdminMonitor(channel) {
             .select('*')
             .eq('channel', channel);
 
-        // 2. Получаем логи ФИНИШЕЙ для понимания статуса (отгулял/в процессе)
-        const { data: finishLogs, error: err2 } = await supabaseClient
+       // 2. Получаем логи СТАРТОВ и ЗАВЕРШЕНИЙ для точного статуса
+        const { data: actionLogs, error: err2 } = await supabaseClient
             .from('global_log')
             .select('*')
             .eq('channel', channel)
-            .eq('action', 'ФИНИШ');
+            .in('action', ['СТАРТ', 'ЗАВЕРШЕН']); // 👈 Ищем оба лога
 
         if (err1 || err2) throw new Error("Ошибка БД");
 
         // 3. Группируем данные по операторам
         const ops = {};
-        
-        // Распределяем брони
         activeBookings.forEach(b => {
             if (!ops[b.user_id]) ops[b.user_id] = { name: b.operator_name, slots: [] };
             ops[b.user_id].slots.push(b.time_slot);
         });
 
-        // Распределяем финиши
-        const finishes = {};
-        finishLogs.forEach(l => {
-            if (!finishes[l.user_id]) finishes[l.user_id] = [];
-            finishes[l.user_id].push(l.time_slot);
+        // Определяем точный статус каждого слота по логам
+        const slotStatuses = {}; 
+        actionLogs.forEach(l => {
+            const key = `${l.user_id}_${l.time_slot}`;
+            if (l.action === 'ЗАВЕРШЕН') {
+                slotStatuses[key] = 'ЗАВЕРШЕН';
+            } else if (l.action === 'СТАРТ' && slotStatuses[key] !== 'ЗАВЕРШЕН') {
+                slotStatuses[key] = 'СТАРТ';
+            }
         });
 
         // 4. Отрисовываем HTML
         let html = '';
         for (const uid in ops) {
             const op = ops[uid];
-            op.slots.sort(); // Сортируем время по порядку
+            op.slots.sort(); 
 
             let slotsHtml = op.slots.map(slot => {
-                const isFinished = finishes[uid] && finishes[uid].includes(slot);
+                const currentStatus = slotStatuses[`${uid}_${slot}`];
                 let slotClass = 'booked'; // По умолчанию просто синий
 
-                if (isFinished) {
-                    // Вычисляем, закончилось ли время слота
-                    const [start, end] = slot.split('-');
-                    const [endH, endM] = end.split(':').map(Number);
-                    const endDate = new Date(); 
-                    endDate.setHours(endH, endM, 0, 0);
-
-                    // Если перерыв переходит через полночь
-                    if (endDate < new Date().setHours(0,0,0,0)) endDate.setDate(endDate.getDate() + 1);
-
-                    if (Date.now() < endDate.getTime()) {
-                        slotClass = 'active'; // 💗 Идет прямо сейчас (Неоновый пульс)
-                    } else {
-                        slotClass = 'done';   // 🔴 Завершен (Перечеркнутый)
-                    }
+                if (currentStatus === 'СТАРТ') {
+                    slotClass = 'active'; // 💗 Идет прямо сейчас (Неоновый пульс)
+                } else if (currentStatus === 'ЗАВЕРШЕН') {
+                    slotClass = 'done';   // 🔴 Завершен (Перечеркнутый)
                 }
 
                 return `<div class="adm-slot ${slotClass}">${slot}</div>`;
@@ -933,7 +937,7 @@ async function loadIntervalEditor(channel) {
         container.innerHTML = html;
     } catch (err) {
         console.error(err);
-        container.innerHTML = `<div style="text-align:center; color: var(--danger);">❌ Ошибка связи со спутником</div>`;
+        container.innerHTML = `<div style="text-align:center; color: var(--danger);">❌ Ошибка связи</div>`;
     }
 }
 

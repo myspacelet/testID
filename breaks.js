@@ -625,15 +625,22 @@ function getSlotDuration(timeString) {
 function startIronTimer(tagElement, timeString, isRestore = false) {
     const textSpan = tagElement.querySelector('span');
     const storageKey = `timer_target_${timeString}`;
+    const realStartKey = `timer_real_start_${timeString}`; // 👈 Ключ для фактического старта
     
-    // Подхватываем элементы большого экрана
     const overlay = document.getElementById('fullscreen-timer-overlay');
     const bigTimeDisplay = document.getElementById('big-timer-time');
     const bigSlotDisplay = document.getElementById('big-timer-slot');
-    const btnEndEarly = document.getElementById('btn-end-timer-early'); // 👈 Новая кнопка
+    const btnEnd = document.getElementById('btn-end-timer-early'); 
     
     let targetTime;
-    let intervalId; // 👈 Вынесли переменную наверх, чтобы избежать ошибки ReferenceError
+    let intervalId; 
+    let blinkInterval;
+    const originalTitle = document.title;
+
+    // Запоминаем момент реального старта таймера
+    if (!localStorage.getItem(realStartKey)) {
+        localStorage.setItem(realStartKey, Date.now().toString());
+    }
 
     if (isRestore && localStorage.getItem(storageKey)) {
         targetTime = parseInt(localStorage.getItem(storageKey), 10);
@@ -643,42 +650,67 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
         localStorage.setItem(storageKey, targetTime.toString());
     }
 
-    // Подсвечиваем маленький тег
     tagElement.style.background = 'rgba(0, 174, 239, 0.15)';
     tagElement.style.border = '1px solid #00aeef';
 
-    // Включаем оверлей
     bigSlotDisplay.innerText = timeString;
     overlay.classList.remove('hide');
+    
+    // Сброс стилей (если открыли новый таймер)
+    bigTimeDisplay.style.color = '';
+    btnEnd.innerText = '⏹ Завершить досрочно';
+    btnEnd.classList.remove('btn-pulse-danger');
 
-    const updateDisplays = async () => { // 👈 ДОБАВИЛИ СЛОВО async
+    // 👈 НОВАЯ ФУНКЦИЯ РУЧНОГО ЗАКРЫТИЯ
+    const finishBreakManually = async () => {
+        clearInterval(intervalId);
+        if (blinkInterval) {
+            clearInterval(blinkInterval);
+            document.title = originalTitle; // Возвращаем имя вкладки
+        }
+
+        // Считаем фактическое время
+        const startTime = parseInt(localStorage.getItem(realStartKey), 10);
+        const actualSeconds = Math.floor((Date.now() - startTime) / 1000);
+
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(realStartKey);
+        
+        textSpan.innerText = `${timeString} (Завершен)`;
+        tagElement.style.background = 'rgba(255, 255, 255, 0.05)';
+        tagElement.style.border = '1px solid var(--border-color)';
+        tagElement.style.color = 'var(--text-muted)';
+        
+        overlay.classList.add('hide');
+
+        const { data } = await supabaseClient.from('global_log')
+            .select('id').eq('user_id', currentUser.id).eq('time_slot', timeString).eq('action', 'ЗАВЕРШЕН');
+        
+        if (!data || data.length === 0) {
+            await supabaseClient.from('global_log').insert([{
+                operator_name: currentOperatorName, channel: selectedChannel,
+                action: 'ЗАВЕРШЕН', time_slot: timeString, user_id: currentUser.id,
+                actual_duration_seconds: actualSeconds // 👈 ПИШЕМ ФАКТИЧЕСКОЕ ВРЕМЯ В БАЗУ
+            }]);
+            console.log(`🛑 ЗАВЕРШЕН записан. Факт: ${actualSeconds} сек.`);
+        }
+    };
+
+    const updateDisplays = () => {
         const remaining = targetTime - Date.now();
 
         if (remaining <= 0) {
-            // ТАЙМЕР ВЫШЕЛ
-            clearInterval(intervalId);
-            localStorage.removeItem(storageKey);
-            
-            // Обновляем тег
-            textSpan.innerText = `${timeString} (Завершен)`;
-            tagElement.style.background = 'rgba(255, 255, 255, 0.05)';
-            tagElement.style.border = '1px solid var(--border-color)';
-            tagElement.style.color = 'var(--text-muted)';
-            
-            // Прячем оверлей
-            overlay.classList.add('hide');
+            // ВРЕМЯ ВЫШЛО!
+            bigTimeDisplay.innerText = "00:00";
+            bigTimeDisplay.style.color = "#ff5f56"; // Красные цифры
+            btnEnd.innerText = "⏹ ЗАВЕРШИТЬ ПЕРЕРЫВ";
+            btnEnd.classList.add('btn-pulse-danger');
 
-            // 👈 НОВОЕ: ПИШЕМ "ЗАВЕРШЕН" В БАЗУ ДАННЫХ
-            // Защита от дублей, чтобы не спамить базу, если функция моргнет дважды
-            const { data } = await supabaseClient.from('global_log')
-                .select('id').eq('user_id', currentUser.id).eq('time_slot', timeString).eq('action', 'ЗАВЕРШЕН');
-            
-            if (!data || data.length === 0) {
-                await supabaseClient.from('global_log').insert([{
-                    operator_name: currentOperatorName, channel: selectedChannel,
-                    action: 'ЗАВЕРШЕН', time_slot: timeString, user_id: currentUser.id
-                }]);
-                console.log(`🛑 ЗАВЕРШЕН записан: ${timeString}`);
+            // Начинаем мигать вкладкой (если еще не начали)
+            if (!blinkInterval) {
+                blinkInterval = setInterval(() => {
+                    document.title = document.title === "ВРЕМЯ ВЫШЛО!" ? originalTitle : "ВРЕМЯ ВЫШЛО!";
+                }, 1000);
             }
         } else {
             // ТАЙМЕР ИДЕТ
@@ -691,18 +723,16 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
         }
     };
 
-    // Привязываем досрочное завершение
-    btnEndEarly.onclick = () => {
-        if (confirm('Завершить перерыв досрочно?')) {
-            targetTime = 0; // Принудительно обнуляем время
-            updateDisplays(); // Вызываем немедленную проверку, которая всё закроет и очистит
+    btnEnd.onclick = () => {
+        const remaining = targetTime - Date.now();
+        if (remaining > 0) {
+            if (confirm('Завершить перерыв досрочно?')) finishBreakManually();
+        } else {
+            finishBreakManually(); // Без вопросов закрываем, если время уже вышло
         }
     };
 
-    // Вызываем сразу 1 раз
     updateDisplays(); 
-    
-    // И запускаем цикл (теперь intervalId присваивается безопасно)
     intervalId = setInterval(updateDisplays, 1000);
 }
 
@@ -1299,28 +1329,34 @@ async function downloadGlobalLog() {
             return;
         }
 
-        // 2. Подготавливаем заголовки (РАЗДЕЛИЛИ ДАТУ И ВРЕМЯ)
+        // 2. Подготавливаем заголовки
         const csvRows = [];
-        const headers = ['Дата', 'Время', 'Канал', 'Оператор', 'ID Оператора', 'Действие', 'Интервал'];
+        const headers = ['Дата', 'Время', 'Канал', 'Оператор', 'Действие', 'Интервал', 'Факт. время'];
         
         csvRows.push(headers.join(';')); 
 
         // 3. Перебираем данные и форматируем строки
         data.forEach(row => {
             const dateObj = new Date(row.created_at);
-            
-            // 👇 Получаем отдельно чистую дату и чистое время
-            const dateStr = dateObj.toLocaleDateString('ru-RU'); // 29.08.2026
-            const timeStr = dateObj.toLocaleTimeString('ru-RU'); // 14:30:00
+            const dateStr = dateObj.toLocaleDateString('ru-RU');
+            const timeStr = dateObj.toLocaleTimeString('ru-RU');
+
+            // 👈 Красиво форматируем секунды в минуты
+            let durationStr = '';
+            if (row.actual_duration_seconds) {
+                const m = Math.floor(row.actual_duration_seconds / 60);
+                const s = row.actual_duration_seconds % 60;
+                durationStr = `${m} мин ${s} сек`;
+            }
 
             const values = [
                 dateStr,
                 timeStr,
                 row.channel || '',
                 row.operator_name || '',
-                row.user_id || '',
                 row.action || '',
-                row.time_slot || ''
+                row.time_slot || '',
+                durationStr
             ];
             
             // Защита: оборачиваем каждую ячейку в кавычки, чтобы случайные символы не сломали таблицу

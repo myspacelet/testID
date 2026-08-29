@@ -1663,3 +1663,30 @@ body.dark-mode .ie-slot-item.unique-slot {
     font-weight: 700;
     color: #00aeef; /* Твой фирменный синий цвет */
 }
+
+/* Кнопка сброса в стиле macOS (Белая, при наведении — красная) */
+.btn-mac-danger {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-mac-danger:hover {
+    background: #ff5f56;
+    border-color: #ff5f56;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(255, 95, 86, 0.3);
+}
+
+.btn-mac-danger:active {
+    transform: scale(0.97);
+}

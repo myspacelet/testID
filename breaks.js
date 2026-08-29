@@ -1327,44 +1327,91 @@ async function confirmAllPendingAccounts() {
 }
 
 // ========================================================
-// 📊 ЭКСПОРТ ЛОГОВ В EXCEL (CSV)
+// 🗄️ ПАНЕЛЬ УПРАВЛЕНИЯ ЛОГАМИ (СКАЧАТЬ / УДАЛИТЬ)
 // ========================================================
-async function downloadGlobalLog() {
-    // 🛑 Проверка прав
+function openLogsModal() {
+    document.getElementById('modal-logs').classList.add('open');
+    // Очищаем инпуты при открытии
+    document.getElementById('log-date-start').value = '';
+    document.getElementById('log-date-end').value = '';
+}
+
+function closeLogsModal(event) {
+    if (event === null || event.target.id === 'modal-logs') {
+        document.getElementById('modal-logs').classList.remove('open');
+    }
+}
+
+async function actionLogs(actionType) {
     if (currentRole !== 'admin') {
         alert('⛔ У вас нет прав для этого действия!');
         return;
     }
 
+    const startDateVal = document.getElementById('log-date-start').value;
+    const endDateVal = document.getElementById('log-date-end').value;
+
+    // Для удаления мы ЖЕСТКО требуем выбрать даты
+    if (actionType === 'delete' && (!startDateVal || !endDateVal)) {
+        alert('⚠️ Для удаления логов необходимо обязательно выбрать начальную и конечную даты!');
+        return;
+    }
+
+    if (actionType === 'delete') {
+        if (!confirm(`🚨 ВНИМАНИЕ!\nВы собираетесь безвозвратно удалить логи с ${startDateVal} по ${endDateVal}.\nПродолжить?`)) return;
+    }
+
     try {
         document.body.style.cursor = 'wait';
-        
-        // 1. Вытягиваем вообще все логи, сортируем от новых к старым
-        const { data, error } = await supabaseClient
-            .from('global_log')
-            .select('*')
-            .order('created_at', { ascending: false });
+
+        // Формируем базовый запрос к таблице global_log
+        let query = supabaseClient.from('global_log');
+
+        // Выбираем действие: удалять (delete) или получать (select)
+        if (actionType === 'delete') {
+            query = query.delete();
+        } else {
+            query = query.select('*').order('created_at', { ascending: false });
+        }
+
+        // Если админ выбрал даты — добавляем фильтры (с учетом часового пояса МСК)
+        if (startDateVal) {
+            const startMsk = new Date(`${startDateVal}T00:00:00+03:00`).toISOString();
+            query = query.gte('created_at', startMsk);
+        }
+        if (endDateVal) {
+            const endMsk = new Date(`${endDateVal}T23:59:59.999+03:00`).toISOString();
+            query = query.lte('created_at', endMsk);
+        }
+
+        // ВЫПОЛНЯЕМ ЗАПРОС К БАЗЕ
+        const { data, error } = await query;
 
         if (error) throw error;
-        
-        if (!data || data.length === 0) {
-            alert('В базе логов пока пусто.');
+
+        // 🛑 ОБРАБОТКА УДАЛЕНИЯ
+        if (actionType === 'delete') {
+            alert('✅ Логи за выбранный период успешно удалены!');
+            closeLogsModal(null);
+            loadAdminMonitor(currentAdminChannel); // Обновляем доску на всякий случай
             return;
         }
 
-        // 2. Подготавливаем заголовки
+        // 📥 ОБРАБОТКА СКАЧИВАНИЯ (если actionType === 'download')
+        if (!data || data.length === 0) {
+            alert('За выбранный период логов не найдено.');
+            return;
+        }
+
         const csvRows = [];
         const headers = ['Дата', 'Время', 'Канал', 'Оператор', 'Действие', 'Интервал', 'Факт. время'];
-        
         csvRows.push(headers.join(';')); 
 
-        // 3. Перебираем данные и форматируем строки
         data.forEach(row => {
             const dateObj = new Date(row.created_at);
             const dateStr = dateObj.toLocaleDateString('ru-RU');
             const timeStr = dateObj.toLocaleTimeString('ru-RU');
 
-            // 👈 Красиво форматируем секунды в минуты
             let durationStr = '';
             if (row.actual_duration_seconds) {
                 const m = Math.floor(row.actual_duration_seconds / 60);
@@ -1373,44 +1420,33 @@ async function downloadGlobalLog() {
             }
 
             const values = [
-                dateStr,
-                timeStr,
-                row.channel || '',
-                row.operator_name || '',
-                row.action || '',
-                row.time_slot || '',
-                durationStr
+                dateStr, timeStr, row.channel || '', row.operator_name || '',
+                row.action || '', row.time_slot || '', durationStr
             ];
             
-            // Защита: оборачиваем каждую ячейку в кавычки, чтобы случайные символы не сломали таблицу
             const escapedValues = values.map(v => `"${String(v).replace(/"/g, '""')}"`);
             csvRows.push(escapedValues.join(';'));
         });
 
-        // 4. Склеиваем всё в один текст
         const csvString = csvRows.join('\n');
-        
-        // 5. Создаем сам файл. \uFEFF — это BOM-маркер, он заставляет Excel правильно читать русский язык
         const blobData = new Blob(["\uFEFF" + csvString], { type: 'text/csv;charset=utf-8;' });
         
-        // Генерируем имя файла с текущей датой
-        const currentDate = new Date().toLocaleDateString('ru-RU');
-        const fileName = `LETU_Logs_${currentDate}.csv`;
+        let fileName = `LETU_Logs_${new Date().toLocaleDateString('ru-RU')}.csv`;
+        if (startDateVal && endDateVal) fileName = `LETU_Logs_${startDateVal}_to_${endDateVal}.csv`;
         
-        // Невидимая ссылка для старта скачивания
         const link = document.createElement("a");
-        const url = URL.createObjectURL(blobData);
-        link.setAttribute("href", url);
-        link.setAttribute("download", fileName);
+        link.href = URL.createObjectURL(blobData);
+        link.download = fileName;
         link.style.visibility = 'hidden';
-        
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        
+        closeLogsModal(null);
 
     } catch (e) {
-        console.error("Ошибка при выгрузке логов:", e);
-        alert("❌ Ошибка при скачивании файла логов.");
+        console.error("Ошибка при работе с логами:", e);
+        alert("❌ Произошла ошибка. Проверьте консоль.");
     } finally {
         document.body.style.cursor = 'default';
     }

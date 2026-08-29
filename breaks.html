@@ -223,38 +223,13 @@
         </div>
     </div>
 </div>
+
 <!-- 🗄️ МОДАЛКА ПАНЕЛИ ЛОГОВ -->
 <div id="modal-logs" class="modal-overlay" onclick="closeLogsModal(event)">
     <div class="modal-content" style="max-width: 450px; display: flex; flex-direction: column; gap: 15px;" onclick="event.stopPropagation()">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
             <h3 class="input-label" style="font-size: 17px; margin: 0; color: var(--text-title);">🗄️ Управление логами</h3>
-            <button class="modal-close" onclick="closeLogsModal(null)">×</button>
-        </div>
-        
-        <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 10px 0;">Выберите период. Если даты не выбраны, скачается вся история.</p>
-
-        <div style="display: flex; gap: 10px;">
-            <div style="flex: 1;">
-                <label class="small-label">С даты:</label>
-                <input type="date" id="log-date-start" class="input-textarea single-line w-100" style="padding: 0 10px; cursor: pointer;">
-            </div>
-            <div style="flex: 1;">
-                <label class="small-label">По дату:</label>
-                <input type="date" id="log-date-end" class="input-textarea single-line w-100" style="padding: 0 10px; cursor: pointer;">
-            </div>
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button class="btn-main btn-primary" style="flex: 1; padding: 10px; background: #00aeef; color: white;" onclick="actionLogs('download')">📥 Скачать CSV</button>
-            <button class="btn-main btn-primary" style="flex: 1; padding: 10px; background: rgba(255, 95, 86, 0.1); color: #ff5f56; border: 1px solid rgba(255, 95, 86, 0.3);" onclick="actionLogs('delete')">🗑️ Удалить</button>
-        </div>
-    </div>
-</div>
-<!-- 🗄️ МОДАЛКА ПАНЕЛИ ЛОГОВ -->
-<div id="modal-logs" class="modal-overlay" onclick="closeLogsModal(event)">
-    <div class="modal-content" style="max-width: 450px; display: flex; flex-direction: column; gap: 15px;" onclick="event.stopPropagation()">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-            <h3 class="input-label" style="font-size: 17px; margin: 0; color: var(--text-title);">🗄️ Управление логами</h3>
+            <!-- 👇 Используем точно такой же класс и структуру как в других модалках -->
             <button class="modal-close" onclick="closeLogsModal(null)">×</button>
         </div>
         

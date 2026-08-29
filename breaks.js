@@ -1149,6 +1149,11 @@ function renderAccounts() {
         const isConfirmed = u.is_confirmed === true;
         const roleLabel = u.role === 'admin' ? '👑 Администратор' : (u.role === 'id' ? '🚌 ИД 2.0' : '🎧 Оператор');
         
+        // 👇 НОВАЯ ЛОГИКА: Формируем кнопку лимита (проверяем u.no_limit)
+        const limitBtn = u.no_limit 
+            ? `<button class="btn-status-toggle" style="background: var(--bg-element); color: var(--text-main); border: 1px solid var(--border-color);" onclick="toggleUserLimit('${u.id}', false)">🔒 Включить лимит</button>`
+            : `<button class="btn-status-toggle" style="background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3);" onclick="toggleUserLimit('${u.id}', true)">⚡ Без лимитов</button>`;
+        
         return `
             <div class="account-card-row">
                 <div class="account-info-main">
@@ -1159,6 +1164,10 @@ function renderAccounts() {
                     <span class="status-pill ${isConfirmed ? 'confirmed' : 'pending'}">
                         ${isConfirmed ? '✓ TRUE' : '✕ FALSE'}
                     </span>
+                    
+                    <!-- 👇 Вставляем саму кнопку перед кнопкой Подтвердить/Заблокировать -->
+                    ${limitBtn}
+                    
                     <button 
                         class="btn-status-toggle ${isConfirmed ? 'revoke' : 'confirm'}" 
                         onclick="toggleUserConfirmation('${u.id}', ${!isConfirmed}, '${(u.full_name || '').replace(/'/g, "\\'")}')">
@@ -1485,4 +1494,30 @@ function clearAdminSearch() {
         searchInput.focus();
     }
     filterAdminMonitor();
+}
+
+// ========================================================
+// ⚡ УПРАВЛЕНИЕ ЛИМИТАМИ ОПЕРАТОРОВ (АДМИН)
+// ========================================================
+async function toggleUserLimit(userId, isNoLimit) {
+    if (currentRole !== 'admin') return;
+
+    try {
+        const { error } = await supabaseClient
+            .from('profiles')
+            .update({ no_limit: isNoLimit })
+            .eq('id', userId);
+
+        if (error) throw error;
+
+        // Обновляем локальный массив и перерисовываем список
+        const user = allAccountsData.find(u => u.id === userId);
+        if (user) user.no_limit = isNoLimit;
+        
+        renderAccounts();
+        
+    } catch (err) {
+        console.error("Ошибка при изменении лимитов:", err);
+        alert("❌ Ошибка при сохранении настроек.");
+    }
 }

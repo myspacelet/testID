@@ -805,7 +805,8 @@ async function loadAdminMonitor(channel) {
                     slotClass = 'done';   // 🔴 Завершен (Перечеркнутый)
                 }
 
-                return `<div class="adm-slot ${slotClass}">${slot}</div>`;
+                // 👇 Добавили вызов функции удаления по клику и курсор (pointer)
+                return `<div class="adm-slot ${slotClass}" onclick="adminDeleteSlot('${uid}', '${op.name}', '${slot}')" style="cursor: pointer;" title="Нажмите, чтобы удалить этот интервал">${slot}</div>`;
             }).join('');
 
             html += `
@@ -1125,5 +1126,88 @@ async function toggleUserConfirmation(userId, newStatus, fullName) {
     } catch (err) {
         console.error("Ошибка при обновлении доступа:", err);
         alert("❌ Ошибка при изменении статуса: " + err.message);
+    }
+}
+
+// ========================================================
+// 🗑️ ТОЧЕЧНЫЙ И ГЛОБАЛЬНЫЙ СБРОС (ТОЛЬКО АДМИН)
+// ========================================================
+
+// 1. Точечное удаление перерыва (клик по слоту)
+async function adminDeleteSlot(userId, opName, timeSlot) {
+    // 🛑 Жесткая проверка: только Админ!
+    if (currentRole !== 'admin') {
+        alert('⛔ У вас нет прав для этого действия!');
+        return;
+    }
+    
+    if (!confirm(`Удалить интервал ${timeSlot} у оператора ${opName}?\nЭто действие безвозвратно освободит слот (история будет стерта).`)) return;
+
+    try {
+        // Удаляем из активных броней (чтобы слот визуально освободился)
+        await supabaseClient.from('active_breaks')
+            .delete()
+            .eq('user_id', userId)
+            .eq('time_slot', timeSlot)
+            .eq('channel', currentAdminChannel);
+
+        // Полностью удаляем из логов (стираем следы БРОНИ, СТАРТА и ЗАВЕРШЕНИЯ)
+        await supabaseClient.from('global_log')
+            .delete()
+            .eq('user_id', userId)
+            .eq('time_slot', timeSlot)
+            .eq('channel', currentAdminChannel);
+
+        loadAdminMonitor(currentAdminChannel); // Обновляем доску
+    } catch (e) {
+        console.error("Ошибка удаления слота:", e);
+        alert("❌ Произошла ошибка при удалении.");
+    }
+}
+
+// 2. Глобальный сброс за СЕГОДНЯ (по МСК)
+async function globalResetToday() {
+    // 🛑 Жесткая проверка: только Админ!
+    if (currentRole !== 'admin') {
+        alert('⛔ У вас нет прав для этого действия!');
+        return;
+    }
+
+    if (!confirm(`🚨 ВНИМАНИЕ!\nВы собираетесь СБРОСИТЬ ВСЕ ПЕРЕРЫВЫ за СЕГОДНЯ для канала ${currentAdminChannel}.\nЭто полностью освободит даже отгулянные слоты. Продолжить?`)) return;
+
+    try {
+        document.body.style.cursor = 'wait';
+        
+        // 🕰 Вычисляем границы сегодняшнего дня строго по МСК (UTC+3)
+        const now = new Date();
+        const mskOffset = 3 * 60 * 60 * 1000; 
+        const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
+        const todayStr = nowMsk.toISOString().split('T')[0]; // Получаем строку YYYY-MM-DD
+        
+        // Превращаем обратно в ISO-формат для базы данных Supabase
+        const startOfDayMsk = new Date(`${todayStr}T00:00:00+03:00`).toISOString();
+        const endOfDayMsk = new Date(`${todayStr}T23:59:59.999+03:00`).toISOString();
+
+        // Очищаем активные брони за сегодня
+        await supabaseClient.from('active_breaks')
+            .delete()
+            .eq('channel', currentAdminChannel)
+            .gte('created_at', startOfDayMsk)
+            .lte('created_at', endOfDayMsk);
+
+        // Очищаем логи за сегодня (стираем историю)
+        await supabaseClient.from('global_log')
+            .delete()
+            .eq('channel', currentAdminChannel)
+            .gte('created_at', startOfDayMsk)
+            .lte('created_at', endOfDayMsk);
+
+        loadAdminMonitor(currentAdminChannel);
+        alert('✅ Глобальный сброс за сегодня успешно выполнен!');
+    } catch (e) {
+        console.error("Ошибка при глобальном сбросе:", e);
+        alert("❌ Ошибка при выполнении глобального сброса.");
+    } finally {
+        document.body.style.cursor = 'default';
     }
 }

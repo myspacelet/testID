@@ -1690,3 +1690,23 @@ body.dark-mode .ie-slot-item.unique-slot {
 .btn-mac-danger:active {
     transform: scale(0.97);
 }
+
+/* Живой ховер для круглых кнопок с иконками (Обновление и Тема) */
+.btn-theme-toggle {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-theme-toggle:hover {
+    background: var(--bg-element);
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(0, 174, 239, 0.2);
+    transform: translateY(-1px);
+}
+
+.btn-theme-toggle:active {
+    transform: scale(0.95);
+}

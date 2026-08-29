@@ -1574,3 +1574,15 @@ body.dark-mode .ie-slot-item.unique-slot {
     background: #ef4444;
     color: #ffffff;
 }
+
+/* 🗑️ Эффект удаления интервала в админке */
+.admin-deletable-slot {
+    cursor: pointer;
+    transition: all 0.2s ease !important;
+}
+.admin-deletable-slot:hover {
+    background-color: rgba(255, 95, 86, 0.15) !important;
+    color: #ff5f56 !important;
+    border-color: rgba(255, 95, 86, 0.4) !important;
+    text-decoration: line-through !important;
+}

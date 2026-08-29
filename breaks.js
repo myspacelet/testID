@@ -805,8 +805,8 @@ async function loadAdminMonitor(channel) {
                     slotClass = 'done';   // 🔴 Завершен (Перечеркнутый)
                 }
 
-                // 👇 Добавили вызов функции удаления по клику и курсор (pointer)
-                return `<div class="adm-slot ${slotClass}" onclick="adminDeleteSlot('${uid}', '${op.name}', '${slot}')" style="cursor: pointer;" title="Нажмите, чтобы удалить этот интервал">${slot}</div>`;
+                // 👇 Заменили inline-стиль на специальный класс admin-deletable-slot
+                return `<div class="adm-slot ${slotClass} admin-deletable-slot" onclick="adminDeleteSlot('${uid}', '${op.name}', '${slot}')" title="Удалить этот интервал">${slot}</div>`;
             }).join('');
 
             html += `
@@ -1270,5 +1270,87 @@ async function confirmAllPendingAccounts() {
         // Возвращаем кнопку в исходное состояние
         btn.innerHTML = originalText;
         btn.style.pointerEvents = 'auto';
+    }
+}
+
+// ========================================================
+// 📊 ЭКСПОРТ ЛОГОВ В EXCEL (CSV)
+// ========================================================
+async function downloadGlobalLog() {
+    // 🛑 Проверка прав
+    if (currentRole !== 'admin') {
+        alert('⛔ У вас нет прав для этого действия!');
+        return;
+    }
+
+    try {
+        document.body.style.cursor = 'wait';
+        
+        // 1. Вытягиваем вообще все логи, сортируем от новых к старым
+        const { data, error } = await supabaseClient
+            .from('global_log')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            alert('В базе логов пока пусто.');
+            return;
+        }
+
+        // 2. Подготавливаем заголовки для колонок Excel
+        const csvRows = [];
+        const headers = ['Дата и время', 'Канал', 'Оператор', 'ID Оператора', 'Действие', 'Интервал'];
+        
+        // Используем точку с запятой (;) — стандартный разделитель колонок для русского Excel
+        csvRows.push(headers.join(';')); 
+
+        // 3. Перебираем данные и форматируем строки
+        data.forEach(row => {
+            // Делаем красивую дату (например: 29.08.2026 14:30:00)
+            const dateObj = new Date(row.created_at);
+            const formattedDate = dateObj.toLocaleString('ru-RU').replace(',', '');
+
+            const values = [
+                formattedDate,
+                row.channel || '',
+                row.operator_name || '',
+                row.user_id || '',
+                row.action || '',
+                row.time_slot || ''
+            ];
+            
+            // Защита: оборачиваем каждую ячейку в кавычки, чтобы случайные символы не сломали таблицу
+            const escapedValues = values.map(v => `"${String(v).replace(/"/g, '""')}"`);
+            csvRows.push(escapedValues.join(';'));
+        });
+
+        // 4. Склеиваем всё в один текст
+        const csvString = csvRows.join('\n');
+        
+        // 5. Создаем сам файл. \uFEFF — это BOM-маркер, он заставляет Excel правильно читать русский язык
+        const blobData = new Blob(["\uFEFF" + csvString], { type: 'text/csv;charset=utf-8;' });
+        
+        // Генерируем имя файла с текущей датой
+        const currentDate = new Date().toLocaleDateString('ru-RU');
+        const fileName = `LETU_Logs_${currentDate}.csv`;
+        
+        // Невидимая ссылка для старта скачивания
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blobData);
+        link.setAttribute("href", url);
+        link.setAttribute("download", fileName);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+    } catch (e) {
+        console.error("Ошибка при выгрузке логов:", e);
+        alert("❌ Ошибка при скачивании файла логов.");
+    } finally {
+        document.body.style.cursor = 'default';
     }
 }

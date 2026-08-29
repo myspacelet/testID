@@ -874,6 +874,9 @@ async function loadAdminMonitor(channel) {
 
         listContainer.innerHTML = html || '<div style="padding:30px; text-align:center; color: var(--text-muted);">Никто не бронировал перерывы 🤷‍♂️</div>';
 
+        // 👇 Сохраняем фильтр после автообновления списка
+        filterAdminMonitor();
+
     } catch (e) {
         console.error(e);
         listContainer.innerHTML = '<div style="padding:30px; text-align:center; color: #ff5f56;">❌ Ошибка загрузки данных</div>';
@@ -1411,4 +1414,39 @@ async function downloadGlobalLog() {
     } finally {
         document.body.style.cursor = 'default';
     }
+}
+
+// ========================================================
+// 🔍 ПОИСК В ПАНЕЛИ МОНИТОРИНГА
+// ========================================================
+function filterAdminMonitor() {
+    const query = (document.getElementById('admin-search-input')?.value || '').trim().toLowerCase();
+    
+    // Прячем или показываем крестик очистки
+    const clearBtn = document.getElementById('admin-search-clear');
+    if (clearBtn) clearBtn.style.opacity = query.length > 0 ? '1' : '0';
+
+    // Получаем все строки операторов в списке
+    const rows = document.querySelectorAll('#admin-monitor-list .monitor-row');
+    
+    rows.forEach(row => {
+        // Ищем по имени оператора
+        const opName = row.querySelector('.op-name')?.innerText.toLowerCase() || '';
+        
+        // Показываем строку, если имя совпадает с поиском, иначе скрываем
+        if (opName.includes(query)) {
+            row.style.display = ''; 
+        } else {
+            row.style.display = 'none'; 
+        }
+    });
+}
+
+function clearAdminSearch() {
+    const searchInput = document.getElementById('admin-search-input');
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+    }
+    filterAdminMonitor();
 }

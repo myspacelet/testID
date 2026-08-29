@@ -294,7 +294,8 @@ async function renderOperatorUI() {
                 const storageKey = `timer_target_${timeString}`;
                 const savedTarget = localStorage.getItem(storageKey);
                 
-                if (savedTarget && parseInt(savedTarget, 10) > Date.now()) {
+                // 👇 Убрали условие проверки времени. Если есть сохраненная цель — принудительно открываем таймер!
+                if (savedTarget) {
                     startIronTimer(tag, timeString, true);
                 } else {
                     textSpan.innerText = `${timeString} (Завершен)`;
@@ -661,16 +662,21 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
     btnEnd.innerText = '⏹ Завершить досрочно';
     btnEnd.classList.remove('btn-pulse-danger');
 
-    // 👈 НОВАЯ ФУНКЦИЯ РУЧНОГО ЗАКРЫТИЯ
+    // 👈 ИСПРАВЛЕННАЯ ФУНКЦИЯ РУЧНОГО ЗАКРЫТИЯ
     const finishBreakManually = async () => {
+        // 🛑 Блокируем кнопку, чтобы избежать дублей и ошибок при спаме кликами
+        btnEnd.style.pointerEvents = 'none';
+        btnEnd.innerText = '⏳ Завершение...';
+
         clearInterval(intervalId);
         if (blinkInterval) {
             clearInterval(blinkInterval);
-            document.title = originalTitle; // Возвращаем имя вкладки
+            document.title = originalTitle; 
         }
 
-        // Считаем фактическое время
-        const startTime = parseInt(localStorage.getItem(realStartKey), 10);
+        // Считаем фактическое время с защитой
+        const savedStart = localStorage.getItem(realStartKey);
+        const startTime = savedStart ? parseInt(savedStart, 10) : Date.now();
         const actualSeconds = Math.floor((Date.now() - startTime) / 1000);
 
         localStorage.removeItem(storageKey);
@@ -683,14 +689,23 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
         
         overlay.classList.add('hide');
 
+        // 🕰 Вычисляем МСК начало дня для защиты от старых логов
+        const now = new Date();
+        const mskOffset = 3 * 60 * 60 * 1000; 
+        const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
+        const todayStr = nowMsk.toISOString().split('T')[0];
+        const startOfDayMsk = new Date(`${todayStr}T00:00:00+03:00`).toISOString();
+
+        // 👈 Ищем дубли ТОЛЬКО за сегодня!
         const { data } = await supabaseClient.from('global_log')
-            .select('id').eq('user_id', currentUser.id).eq('time_slot', timeString).eq('action', 'ЗАВЕРШЕН');
+            .select('id').eq('user_id', currentUser.id).eq('time_slot', timeString)
+            .eq('action', 'ЗАВЕРШЕН').gte('created_at', startOfDayMsk);
         
         if (!data || data.length === 0) {
             await supabaseClient.from('global_log').insert([{
                 operator_name: currentOperatorName, channel: selectedChannel,
                 action: 'ЗАВЕРШЕН', time_slot: timeString, user_id: currentUser.id,
-                actual_duration_seconds: actualSeconds // 👈 ПИШЕМ ФАКТИЧЕСКОЕ ВРЕМЯ В БАЗУ
+                actual_duration_seconds: actualSeconds 
             }]);
             console.log(`🛑 ЗАВЕРШЕН записан. Факт: ${actualSeconds} сек.`);
         }

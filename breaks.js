@@ -616,88 +616,92 @@ async function cancelBooking(tagElement, timeString) {
 }
 
 // ========================================================
-// 🗑️ МАССОВАЯ ОТМЕНА БРОНЕЙ
+// 🗑️ ОЧИСТКА СВОИХ БРОНИРОВАНИЙ (Только неотгулянные)
 // ========================================================
-async function clearAllBookings() {
-    // 1. Показываем то самое важное предупреждение
-    if (!confirm('Вы уверены, что хотите отменить все забронированные перерывы?\n\nВАЖНО: Уже отгулянные (завершенные) перерывы не удалятся и станут доступны только в следующей смене!')) {
-        return; // Если нажали "Отмена" - прерываем функцию
-    }
+async function clearMyBookings() {
+    if (!confirm('Точно хочешь отменить все свои будущие перерывы? 🌴\n(Уже отгулянные слоты останутся на месте)')) return;
 
     try {
-        document.body.style.cursor = 'wait'; // Меняем курсор на загрузку
-
-        // 2. Получаем все активные брони текущего оператора в этом канале
-        const { data: activeBookings, error: bookingsError } = await supabaseClient
+        // 1. Ищем ВСЕ активные слоты текущего юзера в текущем канале
+        const { data: myBreaks, error: fetchError } = await supabaseClient
             .from('active_breaks')
-            .select('time_slot')
-            .eq('channel', selectedChannel)
-            .eq('user_id', currentUser.id);
+            .select('time_slot, id')
+            .eq('user_id', currentUser.id)
+            .eq('channel', selectedChannel);
 
-        if (bookingsError) throw bookingsError;
-
-        if (!activeBookings || activeBookings.length === 0) {
-            alert("У вас нет активных броней для отмены.");
+        if (fetchError) throw fetchError;
+        if (!myBreaks || myBreaks.length === 0) {
+            alert('У тебя сейчас нет бронирований для отмены!');
             return;
         }
 
-        // 3. Узнаем, какие из них УЖЕ начаты или отгуляны (ищем СТАРТ)
-        const { data: startLogs, error: logsError } = await supabaseClient
+        // 2. Вычисляем границу текущей смены
+        const now = new Date();
+        const mskOffset = 3 * 60 * 60 * 1000;
+        const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
+        
+        let resetH = 0, resetM = 0;
+        if (selectedChannel === 'HL') { resetH = 19; resetM = 30; }
+        else if (selectedChannel === 'LIVE') { resetH = 21; resetM = 30; }
+        else if (selectedChannel === 'NIGHT') { resetH = 10; resetM = 0; }
+
+        let shiftStartMsk = new Date(nowMsk);
+        shiftStartMsk.setHours(resetH, resetM, 0, 0);
+        if (nowMsk < shiftStartMsk) shiftStartMsk.setDate(shiftStartMsk.getDate() - 1);
+        
+        const utcShiftStart = new Date(shiftStartMsk.getTime() - mskOffset).toISOString();
+
+        // 3. Ищем логи за ЭТУ смену, чтобы найти слоты, в которые оператор уже сходил
+        const { data: myLogs, error: logsError } = await supabaseClient
             .from('global_log')
             .select('time_slot')
-            .eq('channel', selectedChannel)
             .eq('user_id', currentUser.id)
-            .eq('action', 'СТАРТ'); // 👈
+            .eq('channel', selectedChannel)
+            .gte('created_at', utcShiftStart)
+            .in('action', ['СТАРТ', 'ЗАВЕРШЕН']);
 
         if (logsError) throw logsError;
 
-        const finishedSlots = startLogs ? startLogs.map(l => l.time_slot) : [];
+        // Создаем массив из тайм-слотов, которые уже трогали
+        const spentSlots = myLogs ? myLogs.map(l => l.time_slot) : [];
 
-        // 4. Оставляем только те слоты, которые ЕЩЕ НЕ завершены
-        const slotsToDelete = activeBookings
-            .map(b => b.time_slot)
-            .filter(slot => !finishedSlots.includes(slot));
+        // 4. Фильтруем: оставляем на удаление ТОЛЬКО те брони, которых НЕТ в истории (еще не ходил)
+        const unspentBreaks = myBreaks.filter(b => !spentSlots.includes(b.time_slot));
 
-        if (slotsToDelete.length === 0) {
-            alert("Все ваши перерывы уже использованы. Отменять нечего.");
+        if (unspentBreaks.length === 0) {
+            alert('Все твои забронированные слоты уже начаты или завершены. Отменять нечего!');
             return;
         }
 
-        // 5. Удаляем незавершенные слоты из временной таблицы одним махом
+        // 5. Собираем будущие интервалы в строку и удаляем их из active_breaks
+        const slotsString = unspentBreaks.map(b => b.time_slot).join(', ');
+
         const { error: deleteError } = await supabaseClient
             .from('active_breaks')
             .delete()
-            .in('time_slot', slotsToDelete)
-            .eq('channel', selectedChannel)
-            .eq('user_id', currentUser.id);
+            .in('id', unspentBreaks.map(b => b.id));
 
         if (deleteError) throw deleteError;
 
-        // 6. 🧠 ОБНОВЛЕННАЯ ЛОГИКА: Формируем единую строку и пишем "СБРОС"
-        const combinedSlotsString = slotsToDelete.join(', ');
-
-        const { error: insertError } = await supabaseClient
+        // 6. Отправляем в базу единый лог ОЧИСТКИ
+        await supabaseClient
             .from('global_log')
             .insert([{
                 operator_name: currentOperatorName,
                 channel: selectedChannel,
-                action: 'СБРОС',
-                time_slot: combinedSlotsString,
+                action: 'ОЧИСТКА',
+                time_slot: slotsString,
                 user_id: currentUser.id
             }]);
 
-        if (insertError) throw insertError;
-
-        console.log(`🧹 Массовый сброс слотов: ${combinedSlotsString}`);
+        console.log(`🗑 Очищены будущие интервалы: ${slotsString}`);
         
-        // 7. Перерисовываем интерфейс
+        // Перерисовываем интерфейс оператора
         renderOperatorUI();
 
     } catch (err) {
-        console.error("Ошибка при массовой отмене:", err);
-        alert("Произошла ошибка при отмене перерывов.");
-    } finally {
-        document.body.style.cursor = 'default';
+        console.error("Ошибка при сбросе интервалов:", err);
+        alert('Не удалось сбросить перерывы. Проверь консоль.');
     }
 }
 

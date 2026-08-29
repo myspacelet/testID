@@ -47,13 +47,24 @@
 <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ ПЕРЕРЫВОВ (Без внешнего скролла) -->
 <div id="breaks-app" class="hide app-fullscreen-wrapper">
     
+    <!-- НОВЫЙ БЛОК СТАТИСТИКИ -->
+    <div id="op-stats-hover" class="op-stats-hover">
+        <div style="margin-bottom: 4px;">За смену: <span id="stat-shift-time">0 мин</span></div>
+        <div>За месяц: <span id="stat-month-time">0 мин</span></div>
+    </div>
+
     <!-- Навигационная панель -->
     <div class="mac-header">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <div style="font-weight: 800; color: var(--primary); letter-spacing: 1px; font-size: 18px;">LETU BREAKS</div>
-            <div style="color: var(--text-muted); font-size: 14px; border-left: 2px solid var(--border-color); padding-left: 15px;">
-                ID: <span id="op-id-display" style="color: var(--text-main); font-weight: 700;"></span>
+        <div class="mac-header-left">
+            <div class="mac-logo">LETU BREAKS</div>
+            
+            <div class="mac-divider"></div>
+            <div class="header-info">
+                ID: <span id="op-id-display" class="header-id-value"></span>
             </div>
+            
+            <div class="mac-divider"></div>
+            <div class="header-info" id="op-date-display">...</div>
         </div>
         
         <div id="op-channel-display" class="channel-display-title"></div>

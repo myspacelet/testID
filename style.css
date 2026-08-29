@@ -1600,3 +1600,66 @@ body.dark-mode .ie-slot-item.unique-slot {
     border-color: #ff5f56 !important;
     animation: pulseDangerBtn 1.5s infinite;
 }
+
+/* =========================================
+   ШАПКА ПРИЛОЖЕНИЯ (HEADER)
+   ========================================= */
+.mac-header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.mac-logo {
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: 1px;
+    font-size: 18px;
+}
+
+.mac-divider {
+    height: 18px;
+    border-left: 2px solid var(--border-color);
+}
+
+.header-info {
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.header-id-value {
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+/* Блок личной статистики оператора */
+.op-stats-hover {
+    position: absolute;
+    top: 65px; /* Отступ от верхней шапки */
+    left: 20px;
+    font-size: 12px;
+    color: var(--text-muted);
+    opacity: 0.15; /* Еле видно по умолчанию */
+    transition: all 0.3s ease;
+    z-index: 100;
+    padding: 10px 15px;
+    border-radius: 8px;
+    background: transparent;
+    cursor: default;
+}
+
+/* Эффект при наведении */
+.op-stats-hover:hover {
+    opacity: 1;
+    color: var(--text-main);
+    background: var(--bg-element);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: 1px solid var(--border-color);
+}
+
+/* Выделение самих цифр */
+.op-stats-hover span {
+    font-weight: 700;
+    color: #00aeef; /* Твой фирменный синий цвет */
+}

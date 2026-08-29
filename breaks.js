@@ -200,6 +200,73 @@ async function renderOperatorUI() {
     document.getElementById('op-channel-display').innerText = 
         selectedChannel === 'HL' ? 'ГОРЯЧАЯ ЛИНИЯ' : (selectedChannel === 'LIVE' ? 'ЧАТ LIVETEX' : 'ЧАТ LIVETEX НОЧЬ');
 
+    // ========================================================
+    // 📅 ВЫВОД ДАТЫ И ЛИЧНОЙ СТАТИСТИКИ ОПЕРАТОРА
+    // ========================================================
+    const now = new Date();
+    const mskOffset = 3 * 60 * 60 * 1000;
+    const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
+    
+    // 1. Рисуем красивую дату (например, "29 августа")
+    const dateOptions = { day: 'numeric', month: 'long' }; 
+    const dateEl = document.getElementById('op-date-display');
+    if (dateEl) dateEl.innerText = nowMsk.toLocaleDateString('ru-RU', dateOptions);
+
+    // 2. Вычисляем границу текущей смены (с защитой от полуночи)
+    let resetH = 0, resetM = 0;
+    if (selectedChannel === 'HL') { resetH = 19; resetM = 30; }
+    else if (selectedChannel === 'LIVE') { resetH = 21; resetM = 30; }
+    else if (selectedChannel === 'NIGHT') { resetH = 10; resetM = 0; }
+
+    let shiftStartMsk = new Date(nowMsk);
+    shiftStartMsk.setHours(resetH, resetM, 0, 0);
+    if (nowMsk < shiftStartMsk) shiftStartMsk.setDate(shiftStartMsk.getDate() - 1);
+    
+    const utcShiftStart = new Date(shiftStartMsk.getTime() - mskOffset).toISOString();
+
+    // 3. Вычисляем начало текущего месяца
+    let monthStartMsk = new Date(nowMsk.getFullYear(), nowMsk.getMonth(), 1, 0, 0, 0);
+    const utcMonthStart = new Date(monthStartMsk.getTime() - mskOffset).toISOString();
+
+    try {
+        // 4. Качаем логи ТОЛЬКО этого юзера за текущий месяц (action: 'ЗАВЕРШЕН')
+        const { data: myStats, error: statsError } = await supabaseClient
+            .from('global_log')
+            .select('created_at, actual_duration_seconds')
+            .eq('user_id', currentUser.id)
+            .eq('action', 'ЗАВЕРШЕН')
+            .gte('created_at', utcMonthStart);
+
+        if (!statsError && myStats) {
+            let shiftSecs = 0;
+            let monthSecs = 0;
+
+            myStats.forEach(log => {
+                const secs = log.actual_duration_seconds || 0;
+                monthSecs += secs; // Плюсуем в месяц
+                
+                // Если лог попадает в текущую смену — плюсуем в смену
+                if (new Date(log.created_at) >= new Date(utcShiftStart)) {
+                    shiftSecs += secs;
+                }
+            });
+
+            // Форматируем секунды в "ЧЧ ч ММ мин" или просто "ММ мин"
+            const formatTime = (totalSecs) => {
+                const h = Math.floor(totalSecs / 3600);
+                const m = Math.floor((totalSecs % 3600) / 60);
+                return h > 0 ? `${h} ч ${m} мин` : `${m} мин`;
+            };
+
+            const shiftEl = document.getElementById('stat-shift-time');
+            const monthEl = document.getElementById('stat-month-time');
+            if (shiftEl) shiftEl.innerText = formatTime(shiftSecs);
+            if (monthEl) monthEl.innerText = formatTime(monthSecs);
+        }
+    } catch (err) {
+        console.error("Ошибка загрузки статистики:", err);
+    }
+
     const gridContainer = document.getElementById('dynamic-slots-grid');
     const tagsContainer = document.getElementById('my-booked-tags');
     tagsContainer.innerHTML = '';

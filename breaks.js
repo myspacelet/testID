@@ -660,7 +660,7 @@ function getSlotDuration(timeString) {
 function startIronTimer(tagElement, timeString, isRestore = false) {
     const textSpan = tagElement.querySelector('span');
     const storageKey = `timer_target_${timeString}`;
-    const realStartKey = `timer_real_start_${timeString}`; // 👈 Ключ для фактического старта
+    const realStartKey = `timer_real_start_${timeString}`;
     
     const overlay = document.getElementById('fullscreen-timer-overlay');
     const bigTimeDisplay = document.getElementById('big-timer-time');
@@ -685,20 +685,22 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
         localStorage.setItem(storageKey, targetTime.toString());
     }
 
+    // Подсвечиваем тег во время активного перерыва
     tagElement.style.background = 'rgba(0, 174, 239, 0.15)';
     tagElement.style.border = '1px solid #00aeef';
 
     bigSlotDisplay.innerText = timeString;
     overlay.classList.remove('hide');
     
-    // Сброс стилей (если открыли новый таймер)
+    // 🔧 ИСПРАВЛЕНИЕ 1: Всегда возвращаем кликабельность кнопке при открытии нового таймера
+    btnEnd.style.pointerEvents = 'auto';
     bigTimeDisplay.style.color = '';
     btnEnd.innerText = '⏹ Завершить досрочно';
     btnEnd.classList.remove('btn-pulse-danger');
 
-    // 👈 ИСПРАВЛЕННАЯ ФУНКЦИЯ РУЧНОГО ЗАКРЫТИЯ
+    // Функция ручного закрытия
     const finishBreakManually = async () => {
-        // 🛑 Блокируем кнопку, чтобы избежать дублей и ошибок при спаме кликами
+        // Блокируем кнопку на время сохранения запроса
         btnEnd.style.pointerEvents = 'none';
         btnEnd.innerText = '⏳ Завершение...';
 
@@ -716,21 +718,23 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
         localStorage.removeItem(storageKey);
         localStorage.removeItem(realStartKey);
         
+        // 🔧 ИСПРАВЛЕНИЕ 2: Очищаем инлайн-стили и вешаем класс .finished для правильного красного оформления
         textSpan.innerText = `${timeString} (Завершен)`;
-        tagElement.style.background = 'rgba(255, 255, 255, 0.05)';
-        tagElement.style.border = '1px solid var(--border-color)';
-        tagElement.style.color = 'var(--text-muted)';
+        tagElement.style.background = '';
+        tagElement.style.border = '';
+        tagElement.style.color = '';
+        tagElement.classList.add('finished');
         
         overlay.classList.add('hide');
 
-        // 🕰 Вычисляем МСК начало дня для защиты от старых логов
+        // Вычисляем МСК начало дня для защиты от старых логов
         const now = new Date();
         const mskOffset = 3 * 60 * 60 * 1000; 
         const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
         const todayStr = nowMsk.toISOString().split('T')[0];
         const startOfDayMsk = new Date(`${todayStr}T00:00:00+03:00`).toISOString();
 
-        // 👈 Ищем дубли ТОЛЬКО за сегодня!
+        // Ищем дубли только за сегодня
         const { data } = await supabaseClient.from('global_log')
             .select('id').eq('user_id', currentUser.id).eq('time_slot', timeString)
             .eq('action', 'ЗАВЕРШЕН').gte('created_at', startOfDayMsk);
@@ -751,11 +755,10 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
         if (remaining <= 0) {
             // ВРЕМЯ ВЫШЛО!
             bigTimeDisplay.innerText = "00:00";
-            bigTimeDisplay.style.color = "#ff5f56"; // Красные цифры
+            bigTimeDisplay.style.color = "#ff5f56";
             btnEnd.innerText = "⏹ ЗАВЕРШИТЬ ПЕРЕРЫВ";
             btnEnd.classList.add('btn-pulse-danger');
 
-            // Начинаем мигать вкладкой (если еще не начали)
             if (!blinkInterval) {
                 blinkInterval = setInterval(() => {
                     document.title = document.title === "ВРЕМЯ ВЫШЛО!" ? originalTitle : "ВРЕМЯ ВЫШЛО!";
@@ -777,7 +780,7 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
         if (remaining > 0) {
             if (confirm('Завершить перерыв досрочно?')) finishBreakManually();
         } else {
-            finishBreakManually(); // Без вопросов закрываем, если время уже вышло
+            finishBreakManually();
         }
     };
 

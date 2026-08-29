@@ -151,8 +151,10 @@
 <!-- ⚙️ МОДАЛКА РЕДАКТОРА ИНТЕРВАЛОВ -->
 <div id="modal-interval-editor" class="modal-overlay" onclick="closeIntervalEditor(event)">
     <div class="modal-content" style="max-width: 550px; max-height: 85vh; display: flex; flex-direction: column;" onclick="event.stopPropagation()">
-        <button class="modal-close" onclick="closeIntervalEditor(null)">×</button>
-        <h3 class="input-label" style="font-size: 18px; margin-bottom: 15px; color: var(--text-title);">⚙️ Редактор интервалов</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 class="input-label" style="font-size: 18px; margin: 0; color: var(--text-title);">⚙️ Редактор интервалов</h3>
+            <button class="modal-close-right" onclick="closeIntervalEditor(null)"></button>
+        </div>
 
         <!-- Переключатель каналов внутри модалки -->
         <div class="admin-tabs" style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
@@ -194,7 +196,7 @@
     <div class="modal-content" style="max-width: 600px; max-height: 85vh; display: flex; flex-direction: column;" onclick="event.stopPropagation()">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h3 class="input-label" style="font-size: 17px; margin: 0; color: var(--text-title);">👥 Управление доступом операторов</h3>
-            <button class="modal-close" onclick="closeAccountsModal(null)">×</button>
+            <button class="modal-close-right" onclick="closeAccountsModal(null)"></button>
         </div>
 
         <!-- 🔍 ПОИСК ПО ОПЕРАТОРАМ -->
@@ -229,8 +231,7 @@
     <div class="modal-content" style="max-width: 450px; display: flex; flex-direction: column; gap: 15px;" onclick="event.stopPropagation()">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
             <h3 class="input-label" style="font-size: 17px; margin: 0; color: var(--text-title);">🗄️ Управление логами</h3>
-            <!-- 👇 Используем точно такой же класс и структуру как в других модалках -->
-            <button class="modal-close" onclick="closeLogsModal(null)">×</button>
+            <button class="modal-close-right" onclick="closeLogsModal(null)"></button>
         </div>
         
         <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 10px 0;">Выберите период. Если даты не выбраны, скачается вся история.</p>

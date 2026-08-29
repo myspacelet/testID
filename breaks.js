@@ -825,7 +825,7 @@ function closeAdminPanel() {
 
 async function loadAdminMonitor(channel) {
     currentAdminChannel = channel;
-    localStorage.setItem('lastAdminChannel', channel); // 👈 СОХРАНЯЕМ ВЫБРАННЫЙ КАНАЛ В ПАМЯТЬ
+    localStorage.setItem('lastAdminChannel', channel); 
     
     // Переключаем активные табы
     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
@@ -841,21 +841,35 @@ async function loadAdminMonitor(channel) {
             .select('*')
             .eq('channel', channel);
 
-        // 🕰 Вычисляем начало сегодняшнего дня по МСК (чтобы не тянуть вчерашние статусы)
+        // 🕰 УМНЫЙ РАСЧЕТ ГРАНИЦЫ СМЕНЫ (Убиваем баг полуночи для NIGHT)
+        let resetH = 0, resetM = 0;
+        if (channel === 'HL') { resetH = 19; resetM = 30; }
+        else if (channel === 'LIVE') { resetH = 21; resetM = 30; }
+        else if (channel === 'NIGHT') { resetH = 10; resetM = 0; }
+
         const now = new Date();
         const mskOffset = 3 * 60 * 60 * 1000; 
         const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
-        const todayStr = nowMsk.toISOString().split('T')[0];
-        const startOfDayMsk = new Date(`${todayStr}T00:00:00+03:00`).toISOString();
 
-        // 2. Получаем логи СТАРТОВ и ЗАВЕРШЕНИЙ только за СЕГОДНЯ
+        let shiftStartMsk = new Date(nowMsk);
+        shiftStartMsk.setHours(resetH, resetM, 0, 0);
+
+        // Если сейчас время ДО сброса, значит эта смена началась ВЧЕРА
+        if (nowMsk < shiftStartMsk) {
+            shiftStartMsk.setDate(shiftStartMsk.getDate() - 1);
+        }
+
+        // Переводим границу смены обратно в UTC для запроса в БД
+        const utcShiftStart = new Date(shiftStartMsk.getTime() - mskOffset).toISOString();
+
+        // 2. Получаем логи ТОЛЬКО за текущую смену
         const { data: actionLogs, error: err2 } = await supabaseClient
             .from('global_log')
             .select('*')
             .eq('channel', channel)
-            .gte('created_at', startOfDayMsk) // 👈 Защита от старых багов и вчерашних логов
+            .gte('created_at', utcShiftStart) // 👈 Тянем данные от начала смены
             .in('action', ['СТАРТ', 'ЗАВЕРШЕН'])
-            .order('created_at', { ascending: true }); // 👈 Хронологический порядок
+            .order('created_at', { ascending: true });
 
         if (err1 || err2) throw new Error("Ошибка БД");
 
@@ -866,11 +880,18 @@ async function loadAdminMonitor(channel) {
             ops[b.user_id].slots.push(b.time_slot);
         });
 
-        // 🧠 Определяем точный статус: последнее действие в базе побеждает!
+        // 🧠 Определяем статус и ЗАПОМИНАЕМ ФАКТИЧЕСКОЕ ВРЕМЯ
         const slotStatuses = {}; 
+        const opSlotTimes = {}; // Храним секунды для каждого слота
+        
         actionLogs.forEach(l => {
             const key = `${l.user_id}_${l.time_slot}`;
-            slotStatuses[key] = l.action; // Просто перезаписываем: что было последним, то и статус
+            slotStatuses[key] = l.action;
+            
+            // Если перерыв завершен и есть секунды — записываем их
+            if (l.action === 'ЗАВЕРШЕН' && l.actual_duration_seconds) {
+                opSlotTimes[key] = l.actual_duration_seconds;
+            }
         });
 
         // 4. Отрисовываем HTML
@@ -879,25 +900,38 @@ async function loadAdminMonitor(channel) {
             const op = ops[uid];
             op.slots.sort(); 
 
+            let totalSeconds = 0; // ⏱️ Счетчик времени за смену для оператора
+
             let slotsHtml = op.slots.map(slot => {
-                const currentStatus = slotStatuses[`${uid}_${slot}`];
-                let slotClass = 'booked'; // По умолчанию просто синий
+                const key = `${uid}_${slot}`;
+                const currentStatus = slotStatuses[key];
+                let slotClass = 'booked'; 
 
                 if (currentStatus === 'СТАРТ') {
-                    slotClass = 'active'; // 💗 Идет прямо сейчас (Неоновый пульс)
+                    slotClass = 'active'; 
                 } else if (currentStatus === 'ЗАВЕРШЕН') {
-                    slotClass = 'done';   // 🔴 Завершен (Перечеркнутый)
+                    slotClass = 'done';   
+                    // Плюсуем время только за завершенные слоты
+                    if (opSlotTimes[key]) totalSeconds += opSlotTimes[key]; 
                 }
 
-                // 👇 Заменили inline-стиль на специальный класс admin-deletable-slot
                 return `<div class="adm-slot ${slotClass} admin-deletable-slot" onclick="adminDeleteSlot('${uid}', '${op.name}', '${slot}')" title="Удалить этот интервал">${slot}</div>`;
             }).join('');
+
+            // Красиво форматируем суммарное время
+            const totalMins = Math.floor(totalSeconds / 60);
+            const totalSecs = totalSeconds % 60;
+            const timeStr = totalSeconds > 0 ? `${totalMins} мин ${totalSecs} сек` : '0 мин';
 
             html += `
             <div class="monitor-row">
                 <div class="col-op">
                     <div class="op-name">${op.name}</div>
                     <div class="op-time">ID: ${uid.substring(0, 8)}...</div>
+                    <!-- 👇 НОВЫЙ БЛОК: СУММАРНОЕ ВРЕМЯ В ПЕРЕРЫВЕ -->
+                    <div class="op-time" style="color: #00aeef; font-weight: 700; margin-top: 5px; font-size: 11px;">
+                        Факт. время: <span style="color: var(--text-main); font-weight: 600;">${timeStr}</span>
+                    </div>
                 </div>
                 <div class="col-slots">
                     <button class="btn-kick-op" onclick="kickOperator('${uid}', '${op.name}')" title="Сбросить оператора">✕</button>
@@ -908,7 +942,6 @@ async function loadAdminMonitor(channel) {
 
         listContainer.innerHTML = html || '<div style="padding:30px; text-align:center; color: var(--text-muted);">Никто не бронировал перерывы 🤷‍♂️</div>';
 
-        // 👇 Сохраняем фильтр после автообновления списка
         filterAdminMonitor();
 
     } catch (e) {

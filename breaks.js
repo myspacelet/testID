@@ -1299,21 +1299,23 @@ async function downloadGlobalLog() {
             return;
         }
 
-        // 2. Подготавливаем заголовки для колонок Excel
+        // 2. Подготавливаем заголовки (РАЗДЕЛИЛИ ДАТУ И ВРЕМЯ)
         const csvRows = [];
-        const headers = ['Дата и время', 'Канал', 'Оператор', 'ID Оператора', 'Действие', 'Интервал'];
+        const headers = ['Дата', 'Время', 'Канал', 'Оператор', 'ID Оператора', 'Действие', 'Интервал'];
         
-        // Используем точку с запятой (;) — стандартный разделитель колонок для русского Excel
         csvRows.push(headers.join(';')); 
 
         // 3. Перебираем данные и форматируем строки
         data.forEach(row => {
-            // Делаем красивую дату (например: 29.08.2026 14:30:00)
             const dateObj = new Date(row.created_at);
-            const formattedDate = dateObj.toLocaleString('ru-RU').replace(',', '');
+            
+            // 👇 Получаем отдельно чистую дату и чистое время
+            const dateStr = dateObj.toLocaleDateString('ru-RU'); // 29.08.2026
+            const timeStr = dateObj.toLocaleTimeString('ru-RU'); // 14:30:00
 
             const values = [
-                formattedDate,
+                dateStr,
+                timeStr,
                 row.channel || '',
                 row.operator_name || '',
                 row.user_id || '',

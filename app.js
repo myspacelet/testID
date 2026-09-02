@@ -1534,6 +1534,9 @@ function setupIdFormatter(inputId) {
     const input = document.getElementById(inputId);
     if (input && !input.hasAttribute('data-formatted')) {
         input.setAttribute('data-formatted', 'true');
+        
+        input.type = 'text'; 
+        
         input.addEventListener('input', function(e) {
             let val = e.target.value.replace(/\D/g, ''); // Оставляем только цифры
             e.target.value = val ? 'A' + val : '';       // Добавляем 'A' в начало

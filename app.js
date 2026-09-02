@@ -1418,13 +1418,22 @@ function copyGeneratedScript(btnElement) {
         storeInfoString = store.city ? `${store.city}, ${store.address.split(';')[0].trim()}` : store.address.split(';')[0].trim();
     }
 
+    // === 🛠 ОБНОВЛЕННЫЙ БЛОК: ФОРМИРОВАНИЕ СТОЛБЦОВ ДЛЯ EXCEL (A - L) ===
     const excelRowParts = [
-        cleanPhone, recFio, articlesArray.join(', '), totalQty > 0 ? totalQty.toString() : '',
-        clientCity, storeInfoString, currentDeliveryMode === 'pvz' ? delivPrice : '', currentDeliveryMode !== 'pvz' ? delivPrice : '',
-        delivDays, currentDeliveryMode === 'pvz' ? 'СДЭК ПВЗ' : 'Курьер', deliveryAddress,
-        isPinkMode ? '' : (delivDate ? delivDate.replace('T', ' ') : ''),
-        isPinkMode ? (document.getElementById('script-order-number')?.value.trim() || '') : ''
+        cleanPhone,                                                                     // A: ТЕЛЕФОН КЛИЕНТА
+        recFio,                                                                         // B: ФИО ПОЛУЧАТЕЛЯ
+        articlesArray.join(', '),                                                       // C: АРТИКУЛ ТОВАРА
+        totalQty > 0 ? totalQty.toString() : '',                                        // D: КОЛ-ВО ТОВАРА (сумма)
+        clientCity,                                                                     // E: ГОРОД КЛИЕНТА
+        storeInfoString,                                                                // F: ГОРОД И МАГАЗИН (ОТКУДА)
+        currentDeliveryMode === 'pvz' ? delivPrice : '',                                // G: ПВЗ - ЦЕНА ДОСТАВКИ
+        currentDeliveryMode !== 'pvz' ? delivPrice : '',                                // H: КК - ЦЕНА ДОСТАВКИ
+        delivDays,                                                                      // I: СРОК
+        (currentDeliveryMode === 'pvz' ? 'ПВЗ: ' : 'КУРЬЕРСКАЯ: ') + deliveryAddress,   // J: АДРЕС (С ПРИСТАВКОЙ)
+        isPinkMode ? '' : (delivDate ? delivDate.replace('T', ' ') : ''),               // K: КОГДА ПЛАНИРУЕТ ОФОРМИТЬ
+        isPinkMode ? (document.getElementById('script-order-number')?.value.trim() || '') : '' // L: НОМЕР ЗАКАЗА (РОЗОВЫЙ)
     ];
+    // ====================================================================
 
     navigator.clipboard.writeText(excelRowParts.join('\t')).then(() => {
         const oldText = btnElement.innerHTML;

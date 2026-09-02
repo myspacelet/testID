@@ -1528,10 +1528,26 @@ function selectStoreFromCityModal(storeCode, cityName) {
 // ========================================================
 // ⏳ ЛИСТ ОЖИДАНИЯ
 // ========================================================
+
+// 🛠 НОВАЯ ФУНКЦИЯ: Автоматическая подстановка буквы "A"
+function setupIdFormatter(inputId) {
+    const input = document.getElementById(inputId);
+    if (input && !input.hasAttribute('data-formatted')) {
+        input.setAttribute('data-formatted', 'true');
+        input.addEventListener('input', function(e) {
+            let val = e.target.value.replace(/\D/g, ''); // Оставляем только цифры
+            e.target.value = val ? 'A' + val : '';       // Добавляем 'A' в начало
+        });
+    }
+}
+
 function toggleAddForm() {
     const formBlock = document.getElementById('wl-add-form-block');
     if (!formBlock) return;
     formBlock.classList.toggle('active');
+    
+    // Включаем маску "А" для основного окна
+    setupIdFormatter('wl-input-id');
     
     const saveBtn = document.querySelector('.wl-btn-save');
     if (formBlock.classList.contains('active')) {
@@ -1580,8 +1596,9 @@ async function loadWaitingList() {
                 if (!e.target.classList.contains('wl-id-cell') && !e.target.closest('.wl-status-cell')) editTaskInForm(task.id, task.classifier, task.comment, task.callback_at);
             };
 
+            // 🛠 Выводим ID с буквой "A" и копируем тоже с ней
             row.innerHTML = `
-                <td class="wl-id-cell" onclick="copyTaskIdToClipboard(event, '${task.id}')">${task.id}</td>
+                <td class="wl-id-cell" onclick="copyTaskIdToClipboard(event, 'A${task.id}')">A${task.id}</td>
                 <td><span class="wl-badge">${task.classifier}</span></td>
                 <td>${task.comment || '-'}</td><td>${formattedDate}</td><td>${task.operator_name}</td>
                 <td class="wl-status-cell" onclick="confirmAndDeleteTask(event, ${task.id})"><span class="wl-status-btn">● ${task.status}</span></td>
@@ -1597,8 +1614,15 @@ async function loadWaitingList() {
 function editTaskInForm(id, classifier, comment, callbackAt) {
     const formBlock = document.getElementById('wl-add-form-block');
     formBlock.classList.add('active');
+    
+    // Включаем маску
+    setupIdFormatter('wl-input-id');
+    
     const idInput = document.getElementById('wl-input-id');
-    idInput.value = id; idInput.readOnly = true; idInput.style.opacity = '0.6';
+    idInput.value = 'A' + id; // Подставляем "A" при редактировании
+    idInput.readOnly = true; 
+    idInput.style.opacity = '0.6';
+    
     document.getElementById('wl-input-classifier').value = classifier;
     document.getElementById('wl-input-comment').value = comment;
     
@@ -1613,7 +1637,9 @@ function editTaskInForm(id, classifier, comment, callbackAt) {
 }
 
 async function saveNewTaskToSupabase() {
-    const taskId = document.getElementById('wl-input-id').value.trim();
+    const rawId = document.getElementById('wl-input-id').value;
+    const taskId = rawId.replace(/\D/g, ''); // 🛠 Отрезаем "A" перед отправкой в базу
+    
     if (!taskId || !document.getElementById('wl-input-callback').value) { alert('⚠️ Заполните ID и время!'); return; }
 
     const saveBtn = document.querySelector('.wl-btn-save');
@@ -1634,7 +1660,9 @@ async function saveNewTaskToSupabase() {
 }
 
 async function updateTaskInSupabase() {
-    const taskId = document.getElementById('wl-input-id').value;
+    const rawId = document.getElementById('wl-input-id').value;
+    const taskId = rawId.replace(/\D/g, ''); // 🛠 Отрезаем "A"
+
     const saveBtn = document.querySelector('.wl-btn-save');
     saveBtn.innerText = 'Обновление...'; saveBtn.disabled = true;
 
@@ -1662,8 +1690,9 @@ function resetWlFormToDefault() {
 }
 
 async function deleteCurrentEditingTask() {
-    const taskId = document.getElementById('wl-input-id')?.value;
-    if (!taskId || !confirm(`Удалить задачу №${taskId}?`)) return;
+    const rawId = document.getElementById('wl-input-id')?.value || '';
+    const taskId = rawId.replace(/\D/g, '');
+    if (!taskId || !confirm(`Удалить задачу №A${taskId}?`)) return;
     try {
         await supabaseClient.from('waiting_list').delete().eq('id', parseInt(taskId, 10));
         resetWlFormToDefault();
@@ -1672,11 +1701,11 @@ async function deleteCurrentEditingTask() {
 
 async function confirmAndDeleteTask(event, taskId) {
     event.stopPropagation();
-    if (!confirm(`Завершить задачу №${taskId}?`)) return;
+    if (!confirm(`Завершить задачу №A${taskId}?`)) return;
     try {
         event.currentTarget.innerHTML = '<span class="small-label">Удаление...</span>';
         await supabaseClient.from('waiting_list').delete().eq('id', taskId);
-        if (document.getElementById('wl-input-id')?.value == taskId) resetWlFormToDefault();
+        if (document.getElementById('wl-input-id')?.value.replace(/\D/g, '') == taskId) resetWlFormToDefault();
         else loadWaitingList();
     } catch (err) { alert('❌ Ошибка: ' + err.message); loadWaitingList(); }
 }
@@ -1684,65 +1713,55 @@ async function confirmAndDeleteTask(event, taskId) {
 function copyTaskIdToClipboard(event, idText) {
     event.stopPropagation();
     
-    // Запоминаем элемент ячейки ДО начала асинхронного копирования
     const cell = event.currentTarget;
     const originalColor = cell.style.color;
 
     navigator.clipboard.writeText(idText.trim()).then(() => {
-        // Подсвечиваем ID зеленым цветом на секунду
         cell.style.color = 'var(--success)';
         setTimeout(() => { cell.style.color = originalColor; }, 1000);
-        
-        // Вызываем красивое уведомление
         showToast(`✅ ID ${idText.trim()} скопирован`);
     }).catch(err => {
         console.error("Ошибка копирования: ", err);
     });
 }
 
-// Новая функция для создания и показа уведомлений
 function showToast(message) {
     let toast = document.getElementById('global-toast');
-    
-    // Если элемента еще нет на странице — создаем его
     if (!toast) {
         toast = document.createElement('div');
         toast.id = 'global-toast';
         toast.className = 'toast-notification';
         document.body.appendChild(toast);
     }
-    
-    // Обновляем текст и показываем
     toast.innerHTML = message;
     toast.classList.add('show');
-    
-    // Если уже был запущен таймер скрытия — сбрасываем его
-    if (toast.hideTimeout) {
-        clearTimeout(toast.hideTimeout);
-    }
-    
-    // Прячем через 2 секунды (2000 мс)
-    toast.hideTimeout = setTimeout(() => {
-        toast.classList.remove('show');
-    }, 2000);
+    if (toast.hideTimeout) clearTimeout(toast.hideTimeout);
+    toast.hideTimeout = setTimeout(() => { toast.classList.remove('show'); }, 2000);
 }
 
 function openQuickWaitingListModal() {
     const modal = document.getElementById('modal-quick-wl');
     if (!modal) return;
+    
+    // Включаем маску "А" для быстрого окна
+    setupIdFormatter('quick-wl-id');
+    
     document.getElementById('quick-wl-id').value = '';
     document.getElementById('quick-wl-comment').value = '';
     if (document.getElementById('quick-wl-callback')) document.getElementById('quick-wl-callback').value = document.getElementById('script-deliv-date')?.value || '';
     if (document.getElementById('quick-wl-operator')) document.getElementById('quick-wl-operator').value = currentOperatorName;
     modal.style.display = 'flex'; modal.classList.add('open');
 }
+
 function closeQuickWaitingListModal() {
     const modal = document.getElementById('modal-quick-wl');
     if (modal) { modal.classList.remove('open'); setTimeout(() => modal.style.display = 'none', 200); }
 }
 
 async function saveQuickWaitingListTask() {
-    const taskId = document.getElementById('quick-wl-id')?.value.trim();
+    const rawId = document.getElementById('quick-wl-id')?.value || '';
+    const taskId = rawId.replace(/\D/g, ''); // 🛠 Отрезаем "A"
+    
     if (!taskId) { alert('❌ Введите ID задачи!'); return; }
     
     const saveBtn = document.getElementById('btn-save-quick-wl');
@@ -1764,7 +1783,7 @@ async function saveQuickWaitingListTask() {
 }
 
 function filterWaitingList() {
-    const query = document.getElementById('wl-search-input')?.value.trim() || "";
+    const query = document.getElementById('wl-search-input')?.value.trim().replace(/^A/i, '') || ""; // Игнорируем букву А при поиске
     if (document.getElementById('wl-search-clear')) document.getElementById('wl-search-clear').style.opacity = query.length > 0 ? '1' : '0';
     const rows = document.getElementById('wl-table-body')?.querySelectorAll('tr');
     if (!rows) return;
@@ -1772,7 +1791,10 @@ function filterWaitingList() {
     let visibleCount = 0;
     rows.forEach(row => {
         if (row.querySelector('.small-label')) return;
-        if (!query || row.cells[0]?.innerText.trim().startsWith(query)) { row.style.display = ''; visibleCount++; }
+        
+        // Сравниваем чистый ID
+        const rowId = row.cells[0]?.innerText.trim().replace(/\D/g, '');
+        if (!query || rowId.startsWith(query)) { row.style.display = ''; visibleCount++; }
         else { row.style.display = 'none'; }
     });
 }

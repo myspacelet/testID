@@ -1,9 +1,9 @@
 // ========================================================
 // 🔧 НАСТРОЙКИ И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 // ========================================================
-const SUPABASE_URL = "https://rvukyvwgpondpfxvjoju.supabase.co"; 
-const SUPABASE_ANON_KEY = "sb_publishable_JinHB8pKvvmIkIkIFRjF4A_BXnnC0rD";
-const DADATA_API_TOKEN = "27902abba6a5a04cbd55f5a334a9b85c05caef06"; 
+const SUPABASE_URL = "https://api-gateway.nonoflow.workers.dev"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2dWt5dndncG9uZHBmeHZqb2p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxNjY3NDMsImV4cCI6MjEwMTc0Mjc0M30.lDcQMpDpEozzF-VOMB62VV618OFGhzdUC6zOVZRHr44";
+const DADATA_API_TOKEN = "27902abba6a5a04cbd55f5a334a9b85c05caef06";
 
 // Инициализация Supabase
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

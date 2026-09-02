@@ -815,6 +815,16 @@ function renderResults(storesArray) {
         finalHTML += `<div class="results-group-block"><div class="results-group-title soft-group-title">🏙️ Совпадения по городу (${cityKeys.length})</div><div class="results-group-list">${buildCityRowsHTML(cityGroups)}</div></div>`;
     }
 
+    // 🛠 ДОБАВЛЯЕМ КНОПКУ КОПИРОВАНИЯ (появится ровно над пунктирной линией)
+    if (exactKeys.length > 0 || cityKeys.length > 0) {
+        finalHTML += `
+        <div style="text-align: right; padding: 8px 15px 0px; margin-top: 5px;">
+            <button type="button" onclick="copyFoundCities(this)" style="background: none; border: none; color: #8b949e; cursor: pointer; font-size: 12px; font-weight: 600; transition: color 0.2s; display: inline-flex; align-items: center; gap: 4px;" onmouseover="this.style.color='#ea580c'" onmouseout="this.style.color='#8b949e'">
+                📋 Скопировать города (РФ)
+            </button>
+        </div>`;
+    }
+
     container.innerHTML = finalHTML;
     document.getElementById('results-section').classList.remove('hide');
 }
@@ -1856,5 +1866,58 @@ function copyShablonByIndex(index, btnElement) {
             btnElement.classList.remove('copied');
             iconBox.innerText = origIcon; titleText.innerText = origTitle;
         }, 1100);
+    });
+}
+
+// ========================================================
+// 📋 КОПИРОВАНИЕ СПИСКА ГОРОДОВ (ТОЛЬКО РФ)
+// ========================================================
+function copyFoundCities(btnElement) {
+    const cityElements = document.querySelectorAll('.result-city');
+    const validCities = [];
+
+    cityElements.forEach(el => {
+        // Достаем чистое название города, убираем иконки и лишние пробелы
+        let pureCity = el.textContent || el.innerText;
+        pureCity = pureCity.replace(/(ТОЧНЫЙ МАГАЗИН|СОВПАДЕНИЕ ПО ГОРОДУ)/g, '')
+                           .replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '')
+                           .trim();
+
+        if (!pureCity) return;
+
+        // Нормализуем для проверки по нашей гео-базе РФ
+        let cleanForCheck = pureCity.replace(/\(.*?\)/g, '').replace(/[,.]/g, '').toLowerCase().trim();
+        let firstWord = cleanForCheck.split(/[\s-]+/)[0]; // Берем первое слово (например, от "Ростов-на-Дону" -> "ростов")
+
+        // Проверяем: если город есть в нашем кэше city.csv, значит это Россия
+        if (russianCitiesGeoCache[cleanForCheck] || russianCitiesGeoCache[firstWord]) {
+            if (!validCities.includes(pureCity)) {
+                validCities.push(pureCity);
+            }
+        }
+    });
+
+    if (validCities.length === 0) {
+        showToast('⚠️ Не найдено российских городов для копирования');
+        return;
+    }
+
+    // Соединяем города через запятую с пробелом
+    const resultString = validCities.join(', ');
+
+    // Отправляем в буфер обмена
+    navigator.clipboard.writeText(resultString).then(() => {
+        const originalHtml = btnElement.innerHTML;
+        btnElement.innerHTML = '✅ Скопировано!';
+        btnElement.style.color = 'var(--success)';
+        showToast('✅ Список городов скопирован!');
+        
+        setTimeout(() => {
+            btnElement.innerHTML = originalHtml;
+            btnElement.style.color = '#8b949e'; 
+        }, 1500);
+    }).catch(err => {
+        console.error("Ошибка копирования: ", err);
+        showToast('❌ Ошибка доступа к буферу');
     });
 }

@@ -527,13 +527,14 @@ window.addEventListener('DOMContentLoaded', () => {
 function setSearchMode(mode) {
     currentSearchMode = mode;
     const btnCity = document.getElementById('btn-search-city');
-    const btnCode = document.getElementById('btn-search-code');
+    const btnCode = document.getElementById('btn-search-code'); // Теперь его не будет на странице
+    
     if (mode === 'city') {
-        btnCity.classList.add('active');
-        btnCode.classList.remove('active');
+        if (btnCity) btnCity.classList.add('active');
+        if (btnCode) btnCode.classList.remove('active');
     } else {
-        btnCode.classList.add('active');
-        btnCity.classList.remove('active');
+        if (btnCode) btnCode.classList.add('active');
+        if (btnCity) btnCity.classList.remove('active');
     }
 }
 

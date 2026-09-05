@@ -1762,6 +1762,17 @@ function manualRefresh(btnElement) {
 // ========================================================
 function openMyStatsModal() {
     document.getElementById('modal-my-stats').classList.add('open');
+    
+    // 🛠 Вычисляем текущую дату по МСК
+    const now = new Date();
+    const mskOffset = 3 * 60 * 60 * 1000;
+    const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
+    const todayStr = nowMsk.toISOString().split('T')[0];
+    
+    // 🛠 Подставляем СЕГОДНЯ в оба поля при открытии
+    document.getElementById('my-stats-date-start').value = todayStr;
+    document.getElementById('my-stats-date-end').value = todayStr;
+
     loadMyStats();
 }
 
@@ -1777,11 +1788,23 @@ async function loadMyStats() {
     tbody.innerHTML = '<tr><td colspan="6" class="text-center small-label" style="padding: 30px;">⏳ Загрузка статистики...</td></tr>';
     summaryDiv.innerHTML = '';
 
+    const startDateVal = document.getElementById('my-stats-date-start').value;
+    const endDateVal = document.getElementById('my-stats-date-end').value;
+
+    if (!startDateVal || !endDateVal) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center small-label" style="padding: 30px;">⚠️ Выберите период</td></tr>';
+        return;
+    }
+
+    // Формируем границы запроса по МСК
+    const startMsk = new Date(`${startDateVal}T00:00:00+03:00`).toISOString();
+    const endMsk = new Date(`${endDateVal}T23:59:59.999+03:00`).toISOString();
+
     const now = new Date();
     const mskOffset = 3 * 60 * 60 * 1000;
     const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
 
-    // Граница смены
+    // Граница текущей смены (оставляем для счетчика "За смену")
     let resetH = 0, resetM = 0;
     if (selectedChannel === 'HL') { resetH = 19; resetM = 30; }
     else if (selectedChannel === 'LIVE') { resetH = 21; resetM = 30; }
@@ -1792,32 +1815,31 @@ async function loadMyStats() {
     if (nowMsk < shiftStartMsk) shiftStartMsk.setDate(shiftStartMsk.getDate() - 1);
     const utcShiftStart = new Date(shiftStartMsk.getTime() - mskOffset).toISOString();
 
-    // Граница месяца
-    let monthStartMsk = new Date(nowMsk.getFullYear(), nowMsk.getMonth(), 1, 0, 0, 0);
-    const utcMonthStart = new Date(monthStartMsk.getTime() - mskOffset).toISOString();
-
     try {
-        // Делаем запрос ТОЛЬКО сейчас, когда оператор открыл окно
+        // Делаем гибкий запрос по выбранным датам
         const { data: myStats, error } = await supabaseClient
             .from('global_log')
             .select('*')
             .eq('user_id', currentUser.id)
-            .gte('created_at', utcMonthStart)
+            .gte('created_at', startMsk)
+            .lte('created_at', endMsk)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
 
         let shiftSecs = 0;
-        let monthSecs = 0;
+        let periodSecs = 0; // 🛠 Теперь считаем за "Выбранный период"
         let rowsHtml = '';
 
         if (!myStats || myStats.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center small-label" style="padding: 30px;">Нет данных за этот месяц</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center small-label" style="padding: 30px;">Нет данных за выбранный период</td></tr>';
         } else {
             myStats.forEach(log => {
                 if (log.action === 'ЗАВЕРШЕН') {
                     const secs = log.actual_duration_seconds || 0;
-                    monthSecs += secs;
+                    periodSecs += secs; // Суммируем всё, что попало в фильтр
+                    
+                    // А это плюсуем только если лог относится к ТЕКУЩЕЙ смене
                     if (new Date(log.created_at) >= new Date(utcShiftStart)) {
                         shiftSecs += secs;
                     }
@@ -1834,14 +1856,12 @@ async function loadMyStats() {
                     durationStr = `${m} мин ${s} сек`;
                 }
 
-                // Цвет действия
                 let actionColor = 'var(--text-main)';
                 if (log.action === 'СТАРТ') actionColor = '#a855f7';
                 else if (log.action === 'ЗАВЕРШЕН') actionColor = '#00aeef';
                 else if (log.action === 'БРОНЬ') actionColor = '#22c55e';
                 else if (log.action === 'ОТМЕНА' || log.action === 'ОЧИСТКА' || log.action?.includes('СБРОС')) actionColor = '#ff5f56';
 
-                // 🛠 ЧИСТЫЙ HTML С ИСПОЛЬЗОВАНИЕМ КЛАССА .stats-row
                 rowsHtml += `
                     <tr class="stats-row">
                         <td>${dateStr}</td>
@@ -1862,13 +1882,12 @@ async function loadMyStats() {
             return totalSecs > 0 ? `${m} мин ${s} сек` : '0 мин';
         };
 
-        // 🛠 ЧИСТЫЕ ПЛАШКИ С ИСПОЛЬЗОВАНИЕМ КЛАССОВ
         summaryDiv.innerHTML = `
             <div class="stats-badge-shift">
                 За смену: <span class="stats-val">${formatTime(shiftSecs)}</span>
             </div>
             <div class="stats-badge-month">
-                За месяц: <span class="stats-val">${formatTime(monthSecs)}</span>
+                За период: <span class="stats-val">${formatTime(periodSecs)}</span>
             </div>
         `;
 

@@ -299,9 +299,21 @@
             <h3 class="input-label stats-title">📊 Моя статистика</h3>
             <button class="modal-close-right" onclick="closeMyStatsModal(null)"></button>
         </div>
+
+        <!-- 👇 НОВАЯ ПАНЕЛЬ ВЫБОРА ДАТ -->
+        <div class="logs-controls-panel" style="padding: 10px 15px; margin-bottom: 5px;">
+            <div class="logs-date-col">
+                <label class="small-label">С даты:</label>
+                <input type="date" id="my-stats-date-start" class="input-textarea single-line w-100 logs-date-input" onchange="loadMyStats()">
+            </div>
+            <div class="logs-date-col">
+                <label class="small-label">По дату:</label>
+                <input type="date" id="my-stats-date-end" class="input-textarea single-line w-100 logs-date-input" onchange="loadMyStats()">
+            </div>
+        </div>
         
         <div id="my-stats-summary" class="stats-summary-box">
-            <!-- Сюда вставятся плашки с минутами за смену и месяц -->
+            <!-- Сюда вставятся плашки -->
         </div>
 
         <div class="stats-table-wrapper">

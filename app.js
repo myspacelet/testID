@@ -34,6 +34,10 @@ let topModalZIndex = 2000;
 window.addEventListener('DOMContentLoaded', async () => {
     loadDatabase();
     loadExternalGeoDatabase();
+
+    document.querySelectorAll('input:not(#auth-email):not(#auth-password)').forEach(input => {
+        input.setAttribute('autocomplete', 'nope');
+    });
     
 // Поиск по Enter в гео-инпуте
     const geoInput = document.getElementById('geo-search-input');
@@ -1114,6 +1118,15 @@ function closeFloatingModal(modalId) {
             const toggle = document.getElementById('script-mode-toggle');
             if (toggle) toggle.checked = false;
             handleScriptToggleChange();
+        }
+
+        // 🛠 ИСПРАВЛЕНИЕ: Принудительно сворачиваем и очищаем форму Листа ожидания
+        if (modalId === 'modal-waiting-list') {
+            resetWlFormInputsOnly();
+            document.getElementById('wl-add-form-block')?.classList.remove('active');
+            document.getElementById('wl-btn-delete')?.classList.add('hide');
+            const saveBtn = document.querySelector('.wl-btn-save');
+            if (saveBtn) { saveBtn.innerText = 'Сохранить'; saveBtn.setAttribute('onclick', 'saveNewTaskToSupabase()'); saveBtn.style.background = 'var(--primary)'; }
         }
     }
 }

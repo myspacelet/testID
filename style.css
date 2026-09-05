@@ -1804,8 +1804,9 @@ body.dark-mode .ie-slot-item.unique-slot {
    📊 МОДАЛКА ЛИЧНОЙ СТАТИСТИКИ ОПЕРАТОРА
    ======================================================== */
 .modal-content-stats {
+    width: 100%; /* Защита от сжатия */
     max-width: 800px;
-    max-height: 85vh;
+    height: 80vh; /* 🛠 Жестко фиксируем высоту на 80% экрана */
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -1856,6 +1857,7 @@ body.dark-mode .ie-slot-item.unique-slot {
 .stats-table-wrapper {
     overflow-y: auto;
     flex: 1;
+    min-height: 0; /* 🛠 Секретный хак Flexbox: не дает контенту разорвать окно */
     border: 1px solid var(--border-color);
     border-radius: 10px;
     background: var(--bg-element);
@@ -1891,8 +1893,9 @@ body.dark-mode .ie-slot-item.unique-slot {
    🗄️ МОДАЛКА ПАНЕЛИ ЛОГОВ (АДМИН)
    ======================================================== */
 .modal-content-logs {
+    width: 100%;
     max-width: 1000px;
-    max-height: 90vh;
+    height: 85vh; /* 🛠 Жестко фиксируем высоту админки */
     display: flex;
     flex-direction: column;
     gap: 15px;

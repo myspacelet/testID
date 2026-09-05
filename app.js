@@ -2115,7 +2115,7 @@ async function showTop3Nearest() {
         const top3 = distances.slice(0, 3);
 
         if (top3.length > 0) {
-            renderTop3Modal(top3);
+        renderTop3Modal(top3, userInput);
         } else {
             showToast("⚠️ Не удалось сопоставить города");
         }
@@ -2129,19 +2129,22 @@ async function showTop3Nearest() {
     }
 }
 
-// 🛠 Отрисовка модалки с Топ-3
-function renderTop3Modal(top3Array) {
+// 🛠 ИЗМЕНЕНИЕ 2: Функция теперь принимает клиентский город (clientCityName)
+function renderTop3Modal(top3Array, clientCityName) {
     let modal = document.getElementById('top3-modal');
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'top3-modal';
-        modal.className = 'city-modal-overlay'; // Используем классы маковской модалки
+        modal.className = 'city-modal-overlay'; 
         modal.addEventListener('click', (event) => { if (event.target.id === 'top3-modal') closeTop3Modal(); });
         document.body.appendChild(modal);
     }
 
+    // 🛠 Отрезаем область/республику, оставляем только само название города (до первой запятой)
+    const shortCityName = clientCityName.split(',')[0].trim();
+
     let listHtml = top3Array.map((item, index) => {
-        const roadDistance = Math.round(item.dist * 1.4); // Дорожный коэффициент!
+        const roadDistance = Math.round(item.dist * 1.4); 
         return `
             <div class="city-modal-store-card" style="cursor:pointer; transition: 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'" onclick="selectCityFromTop3('${item.name.replace(/'/g, "\\'")}', ${roadDistance}, ${item.tz || 3})">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -2153,10 +2156,11 @@ function renderTop3Modal(top3Array) {
         `;
     }).join('');
 
+    // 🛠 Выводим очищенное название города прямо в заголовок (уменьшил шрифт, чтобы влезло)
     modal.innerHTML = `
         <div class="city-modal-container" style="max-width: 450px;">
             <div class="city-modal-header">
-                <h3>🏆 Топ-3 ближайших города</h3>
+                <h3 style="font-size: 15px; text-transform: none;">🏆 Топ-3 ближайших к: <span style="color: var(--text-main);">${shortCityName}</span></h3>
                 <button class="city-modal-close-btn" onclick="closeTop3Modal()"></button>
             </div>
             <div class="city-modal-body" style="padding-top: 10px;">

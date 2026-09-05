@@ -183,8 +183,21 @@ body {
    🛠️ ПАНЕЛЬ УПРАВЛЕНИЯ ЗАКАЗОМ
    ======================================================== */
 .order-management-panel {
-    display: flex; gap: 12px; background: var(--bg-element); padding: 10px;
-    border-radius: 12px; margin-bottom: 24px; border: 1px solid var(--border-color);
+    /* Твоя структура (чтобы кнопки стояли ровно) */
+    display: flex; 
+    gap: 12px; 
+    padding: 10px;
+    border-radius: 12px; 
+    margin-bottom: 24px; 
+    border: 1px solid var(--border-color);
+
+    /* Моя магия (липкость и матовое стекло) */
+    position: sticky;
+    top: 10px; /* Небольшой отступ от самого верха, чтобы скругления смотрелись стильно */
+    z-index: 1000; 
+    background: rgba(13, 17, 23, 0.85); /* Заменили твой сплошной фон на полупрозрачный */
+    backdrop-filter: blur(8px); 
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .btn-order-action {
@@ -194,7 +207,6 @@ body {
 }
 
 .btn-order-action:hover { background: #6366f1; color: #ffffff; border-color: #6366f1; }
-
 /* ========================================================
    📝 ПОЛЯ ВВОДА И ТОВАРНЫЕ СПИСКИ
    ======================================================== */

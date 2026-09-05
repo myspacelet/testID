@@ -183,7 +183,6 @@ body {
    🛠️ ПАНЕЛЬ УПРАВЛЕНИЯ ЗАКАЗОМ
    ======================================================== */
 .order-management-panel {
-    /* Твоя структура (чтобы кнопки стояли ровно) */
     display: flex; 
     gap: 12px; 
     padding: 10px;
@@ -191,13 +190,19 @@ body {
     margin-bottom: 24px; 
     border: 1px solid var(--border-color);
 
-    /* Моя магия (липкость и матовое стекло) */
     position: sticky;
-    top: 10px; /* Небольшой отступ от самого верха, чтобы скругления смотрелись стильно */
+    top: 10px; 
     z-index: 1000; 
-    background: rgba(13, 17, 23, 0.85); /* Заменили твой сплошной фон на полупрозрачный */
+    
+    /* 🛠 Светлая тема: полупрозрачный белый/светло-серый фон */
+    background: rgba(255, 255, 255, 0.85); 
     backdrop-filter: blur(8px); 
     -webkit-backdrop-filter: blur(8px);
+}
+
+/* 🛠 Темная тема: полупрозрачный черный фон */
+body.dark-mode .order-management-panel {
+    background: rgba(13, 17, 23, 0.85); 
 }
 
 .btn-order-action {
@@ -656,9 +661,19 @@ body.dark-mode .scroll-nav button {
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.15) !important;
 }
+
 body.dark-mode .scroll-nav button:hover {
     background: rgba(10, 132, 255, 1) !important;
     transform: scale(1.05);
+}
+
+/* 🛠 Исключение для домика: возвращаем ему оранжевый цвет в темной теме */
+body.dark-mode .scroll-nav #btn-scroll-to-nearest {
+    background: rgba(234, 88, 12, 0.8) !important;
+}
+
+body.dark-mode .scroll-nav #btn-scroll-to-nearest:hover {
+    background: rgba(234, 88, 12, 1) !important;
 }
 
 /* ========================================================

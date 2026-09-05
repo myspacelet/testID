@@ -114,7 +114,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     console.error("Ошибка автозаполнения:", err);
                 }
             }, 400);
-
+        });
         // Скрываем список, если кликнуть в пустую область экрана
         document.addEventListener('click', (e) => {
             if (!geoInput.contains(e.target) && !suggestionsBox.contains(e.target)) {

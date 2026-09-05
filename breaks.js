@@ -362,6 +362,7 @@ try {
         console.error("Ошибка загрузки:", err);
         gridContainer.innerHTML = '<div style="color:var(--danger); text-align:center; width: 100%;">Ошибка загрузки базы данных</div>';
     }
+}
 // Обработка клика по слоту
 async function handleSlotClick(element, type, timeString) {
     if (element.classList.contains('booked') || element.classList.contains('my')) return;

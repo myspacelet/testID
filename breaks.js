@@ -225,48 +225,9 @@ async function renderOperatorUI() {
     
     const utcShiftStart = new Date(shiftStartMsk.getTime() - mskOffset).toISOString();
 
-    // 3. Вычисляем начало текущего месяца
+// 3. Вычисляем начало текущего месяца
     let monthStartMsk = new Date(nowMsk.getFullYear(), nowMsk.getMonth(), 1, 0, 0, 0);
     const utcMonthStart = new Date(monthStartMsk.getTime() - mskOffset).toISOString();
-
-    try {
-        // 4. Качаем логи ТОЛЬКО этого юзера за текущий месяц (action: 'ЗАВЕРШЕН')
-        const { data: myStats, error: statsError } = await supabaseClient
-            .from('global_log')
-            .select('created_at, actual_duration_seconds')
-            .eq('user_id', currentUser.id)
-            .eq('action', 'ЗАВЕРШЕН')
-            .gte('created_at', utcMonthStart);
-
-        if (!statsError && myStats) {
-            let shiftSecs = 0;
-            let monthSecs = 0;
-
-            myStats.forEach(log => {
-                const secs = log.actual_duration_seconds || 0;
-                monthSecs += secs; // Плюсуем в месяц
-                
-                // Если лог попадает в текущую смену — плюсуем в смену
-                if (new Date(log.created_at) >= new Date(utcShiftStart)) {
-                    shiftSecs += secs;
-                }
-            });
-
-            // Форматируем секунды в "ММ мин СС сек"
-            const formatTime = (totalSecs) => {
-                const m = Math.floor(totalSecs / 60);
-                const s = totalSecs % 60;
-                return totalSecs > 0 ? `${m} мин ${s} сек` : '0 мин';
-            };
-
-            const shiftEl = document.getElementById('stat-shift-time');
-            const monthEl = document.getElementById('stat-month-time');
-            if (shiftEl) shiftEl.innerText = formatTime(shiftSecs);
-            if (monthEl) monthEl.innerText = formatTime(monthSecs);
-        }
-    } catch (err) {
-        console.error("Ошибка загрузки статистики:", err);
-    }
 
     const gridContainer = document.getElementById('dynamic-slots-grid');
     const tagsContainer = document.getElementById('my-booked-tags');
@@ -1793,5 +1754,126 @@ function manualRefresh(btnElement) {
             renderOperatorUI();
             console.log('🔄 Сетка оператора обновлена вручную');
         }
+    }
+}
+
+// ========================================================
+// 📊 ЛИЧНАЯ СТАТИСТИКА ОПЕРАТОРА (МОДАЛКА)
+// ========================================================
+function openMyStatsModal() {
+    document.getElementById('modal-my-stats').classList.add('open');
+    loadMyStats();
+}
+
+function closeMyStatsModal(event) {
+    if (event === null || event.target.id === 'modal-my-stats') {
+        document.getElementById('modal-my-stats').classList.remove('open');
+    }
+}
+
+async function loadMyStats() {
+    const tbody = document.getElementById('my-stats-table-body');
+    const summaryDiv = document.getElementById('my-stats-summary');
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center small-label" style="padding: 30px;">⏳ Загрузка статистики...</td></tr>';
+    summaryDiv.innerHTML = '';
+
+    const now = new Date();
+    const mskOffset = 3 * 60 * 60 * 1000;
+    const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
+
+    // Граница смены
+    let resetH = 0, resetM = 0;
+    if (selectedChannel === 'HL') { resetH = 19; resetM = 30; }
+    else if (selectedChannel === 'LIVE') { resetH = 21; resetM = 30; }
+    else if (selectedChannel === 'NIGHT') { resetH = 10; resetM = 0; }
+
+    let shiftStartMsk = new Date(nowMsk);
+    shiftStartMsk.setHours(resetH, resetM, 0, 0);
+    if (nowMsk < shiftStartMsk) shiftStartMsk.setDate(shiftStartMsk.getDate() - 1);
+    const utcShiftStart = new Date(shiftStartMsk.getTime() - mskOffset).toISOString();
+
+    // Граница месяца
+    let monthStartMsk = new Date(nowMsk.getFullYear(), nowMsk.getMonth(), 1, 0, 0, 0);
+    const utcMonthStart = new Date(monthStartMsk.getTime() - mskOffset).toISOString();
+
+    try {
+        // Делаем запрос ТОЛЬКО сейчас, когда оператор открыл окно
+        const { data: myStats, error } = await supabaseClient
+            .from('global_log')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .gte('created_at', utcMonthStart)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        let shiftSecs = 0;
+        let monthSecs = 0;
+        let rowsHtml = '';
+
+        if (!myStats || myStats.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center small-label" style="padding: 30px;">Нет данных за этот месяц</td></tr>';
+        } else {
+            myStats.forEach(log => {
+                if (log.action === 'ЗАВЕРШЕН') {
+                    const secs = log.actual_duration_seconds || 0;
+                    monthSecs += secs;
+                    if (new Date(log.created_at) >= new Date(utcShiftStart)) {
+                        shiftSecs += secs;
+                    }
+                }
+
+                const dateObj = new Date(log.created_at);
+                const dateStr = dateObj.toLocaleDateString('ru-RU');
+                const timeStr = dateObj.toLocaleTimeString('ru-RU');
+
+                let durationStr = '-';
+                if (log.actual_duration_seconds) {
+                    const m = Math.floor(log.actual_duration_seconds / 60);
+                    const s = log.actual_duration_seconds % 60;
+                    durationStr = `${m} мин ${s} сек`;
+                }
+
+                // Цвет действия
+                let actionColor = 'var(--text-main)';
+                if (log.action === 'СТАРТ') actionColor = '#a855f7';
+                else if (log.action === 'ЗАВЕРШЕН') actionColor = '#00aeef';
+                else if (log.action === 'БРОНЬ') actionColor = '#22c55e';
+                else if (log.action === 'ОТМЕНА' || log.action === 'ОЧИСТКА' || log.action?.includes('СБРОС')) actionColor = '#ff5f56';
+
+                // 🛠 ЧИСТЫЙ HTML С ИСПОЛЬЗОВАНИЕМ КЛАССА .stats-row
+                rowsHtml += `
+                    <tr class="stats-row">
+                        <td>${dateStr}</td>
+                        <td style="color: var(--text-muted);">${timeStr}</td>
+                        <td style="font-weight: 600;">${log.channel || ''}</td>
+                        <td style="font-weight: 700; color: ${actionColor}; font-size: 11px;">${log.action || ''}</td>
+                        <td style="font-family: monospace; font-size: 12px;">${log.time_slot || '-'}</td>
+                        <td style="color: var(--text-muted);">${durationStr}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = rowsHtml;
+        }
+
+        const formatTime = (totalSecs) => {
+            const m = Math.floor(totalSecs / 60);
+            const s = totalSecs % 60;
+            return totalSecs > 0 ? `${m} мин ${s} сек` : '0 мин';
+        };
+
+        // 🛠 ЧИСТЫЕ ПЛАШКИ С ИСПОЛЬЗОВАНИЕМ КЛАССОВ
+        summaryDiv.innerHTML = `
+            <div class="stats-badge-shift">
+                За смену: <span class="stats-val">${formatTime(shiftSecs)}</span>
+            </div>
+            <div class="stats-badge-month">
+                За месяц: <span class="stats-val">${formatTime(monthSecs)}</span>
+            </div>
+        `;
+
+    } catch (err) {
+        console.error("Ошибка загрузки статистики:", err);
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="color: #ff5f56; padding: 30px;">❌ Ошибка загрузки данных</td></tr>';
     }
 }

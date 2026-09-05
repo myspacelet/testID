@@ -251,7 +251,7 @@ async function renderOperatorUI() {
     mySelections = {};
     currentConfig.forEach(col => mySelections[col.type] = 0);
 
-    try {
+try {
         // 2. Качаем данные из базы
         const { data: intervals, error } = await supabaseClient
             .from('intervals_config')
@@ -261,7 +261,6 @@ async function renderOperatorUI() {
 
         if (error) throw error;
 
-        // 🛠 ДОБАВИЛИ .gte('created_at', utcShiftStart)
         const { data: activeBookings, error: bookingsError } = await supabaseClient
             .from('active_breaks')
             .select('*')
@@ -270,16 +269,16 @@ async function renderOperatorUI() {
 
         if (bookingsError) throw bookingsError;
 
-        // 🛠 ДОБАВИЛИ .gte('created_at', utcShiftStart)
-        const { data: startLogs, error: logsError } = await supabaseClient
+        // 🛠 КАЧАЕМ ВСЕ ЛОГИ ЗА ТЕКУЩУЮ СМЕНУ
+        const { data: shiftLogs, error: logsError } = await supabaseClient
             .from('global_log')
-            .select('time_slot')
+            .select('action, time_slot, created_at')
             .eq('channel', selectedChannel)
             .eq('user_id', currentUser.id)
-            .eq('action', 'СТАРТ')
-            .gte('created_at', utcShiftStart);
+            .gte('created_at', utcShiftStart)
+            .order('created_at', { ascending: true }); // Важно: сортируем по времени
             
-        const finishedSlots = startLogs ? startLogs.map(l => l.time_slot) : [];
+        if (logsError) throw logsError;
 
         // Вспомогательная функция сборки кнопки (Добавлена логика unique)
         const buildSlotHTML = (slotObj, type) => {
@@ -336,12 +335,19 @@ async function renderOperatorUI() {
 
             tag.onclick = (e) => { if(e.target !== closeBtn) finishBreak(tag, timeString); };
             
-            if (finishedSlots.includes(timeString)) {
+            // 🛠 УМНАЯ ПРОВЕРКА СТАТУСА: Ищем логи для ЭТОГО слота ПОСЛЕ времени бронирования
+            const bookingTime = new Date(booking.created_at).getTime();
+            const logsAfterBooking = shiftLogs ? shiftLogs.filter(l => l.time_slot === timeString && new Date(l.created_at).getTime() > bookingTime) : [];
+            
+            // Если после бронирования был СТАРТ или ЗАВЕРШЕН, значит тег отгулян
+            const isFinished = logsAfterBooking.some(l => l.action === 'СТАРТ' || l.action === 'ЗАВЕРШЕН');
+
+            if (isFinished) {
                 tag.classList.add('finished');
                 const storageKey = `timer_target_${timeString}`;
                 const savedTarget = localStorage.getItem(storageKey);
                 
-                // 👇 Убрали условие проверки времени. Если есть сохраненная цель — принудительно открываем таймер!
+                // Если есть сохраненная цель — принудительно открываем таймер!
                 if (savedTarget) {
                     startIronTimer(tag, timeString, true);
                 } else {
@@ -356,7 +362,6 @@ async function renderOperatorUI() {
         console.error("Ошибка загрузки:", err);
         gridContainer.innerHTML = '<div style="color:var(--danger); text-align:center; width: 100%;">Ошибка загрузки базы данных</div>';
     }
-}
 // Обработка клика по слоту
 async function handleSlotClick(element, type, timeString) {
     if (element.classList.contains('booked') || element.classList.contains('my')) return;
@@ -735,7 +740,7 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
     btnEnd.innerText = '⏹ Завершить досрочно';
     btnEnd.classList.remove('btn-pulse-danger');
 
-    // Функция ручного закрытия
+// Функция ручного закрытия
     const finishBreakManually = async () => {
         // Блокируем кнопку на время сохранения запроса
         btnEnd.style.pointerEvents = 'none';
@@ -755,7 +760,6 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
         localStorage.removeItem(storageKey);
         localStorage.removeItem(realStartKey);
         
-        // 🔧 ИСПРАВЛЕНИЕ 2: Очищаем инлайн-стили и вешаем класс .finished для правильного красного оформления
         textSpan.innerText = `${timeString} (Завершен)`;
         tagElement.style.background = '';
         tagElement.style.border = '';
@@ -764,33 +768,24 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
         
         overlay.classList.add('hide');
 
-        // 🛠 Вычисляем границу ИМЕННО ТЕКУЩЕЙ СМЕНЫ
-        const now = new Date();
-        const mskOffset = 3 * 60 * 60 * 1000; 
-        const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
-        
-        let resetH = 0, resetM = 0;
-        if (selectedChannel === 'HL') { resetH = 19; resetM = 30; }
-        else if (selectedChannel === 'LIVE') { resetH = 21; resetM = 30; }
-        else if (selectedChannel === 'NIGHT') { resetH = 10; resetM = 30; } // 🌙 10:30
-
-        let shiftStartMsk = new Date(nowMsk);
-        shiftStartMsk.setHours(resetH, resetM, 0, 0);
-        if (nowMsk < shiftStartMsk) shiftStartMsk.setDate(shiftStartMsk.getDate() - 1);
-        const utcShiftStart = new Date(shiftStartMsk.getTime() - mskOffset).toISOString();
-
-        // Ищем дубли ТОЛЬКО в текущей смене
-        const { data } = await supabaseClient.from('global_log')
-            .select('id').eq('user_id', currentUser.id).eq('time_slot', timeString)
-            .eq('action', 'ЗАВЕРШЕН').gte('created_at', utcShiftStart);
-        
-        if (!data || data.length === 0) {
+        try {
+            // 🛠 ПРОСТО ПИШЕМ ЗАВЕРШЕН В БАЗУ БЕЗ ПРОВЕРОК
             await supabaseClient.from('global_log').insert([{
-                operator_name: currentOperatorName, channel: selectedChannel,
-                action: 'ЗАВЕРШЕН', time_slot: timeString, user_id: currentUser.id,
+                operator_name: currentOperatorName, 
+                channel: selectedChannel,
+                action: 'ЗАВЕРШЕН', 
+                time_slot: timeString, 
+                user_id: currentUser.id,
                 actual_duration_seconds: actualSeconds 
             }]);
             console.log(`🛑 ЗАВЕРШЕН записан. Факт: ${actualSeconds} сек.`);
+            
+            // Опционально: сразу обновляем UI, чтобы снять тег
+            renderOperatorUI();
+            
+        } catch (err) {
+            console.error("Ошибка при записи ЗАВЕРШЕН:", err);
+            alert("Ошибка при сохранении лога завершения перерыва.");
         }
     };
 

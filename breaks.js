@@ -917,18 +917,6 @@ async function loadAdminMonitor(channel) {
             .in('action', ['СТАРТ', 'ЗАВЕРШЕН'])
             .order('created_at', { ascending: true });
 
-        // Переводим границу смены обратно в UTC для запроса в БД
-        const utcShiftStart = new Date(shiftStartMsk.getTime() - mskOffset).toISOString();
-
-        // 2. Получаем логи ТОЛЬКО за текущую смену
-        const { data: actionLogs, error: err2 } = await supabaseClient
-            .from('global_log')
-            .select('*')
-            .eq('channel', channel)
-            .gte('created_at', utcShiftStart) // 👈 Тянем данные от начала смены
-            .in('action', ['СТАРТ', 'ЗАВЕРШЕН'])
-            .order('created_at', { ascending: true });
-
         if (err1 || err2) throw new Error("Ошибка БД");
 
         // 3. Группируем данные по операторам

@@ -35,9 +35,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     loadDatabase();
     loadExternalGeoDatabase();
 
-    document.querySelectorAll('input:not(#auth-email):not(#auth-password)').forEach(input => {
-        input.setAttribute('autocomplete', 'nope');
-    });
+    killBrowserAutocomplete();
     
 // Поиск по Enter в гео-инпуте
     const geoInput = document.getElementById('geo-search-input');
@@ -1081,6 +1079,10 @@ function resetAllForm() {
 function killBrowserAutocomplete() {
     document.querySelectorAll('input:not(#auth-email):not(#auth-password)').forEach(input => {
         input.setAttribute('autocomplete', 'new-password'); 
+        
+        if (!input.hasAttribute('name') || input.getAttribute('name').startsWith('secure_')) {
+            input.setAttribute('name', 'secure_' + Math.random().toString(36).substring(2, 10));
+        }
     });
 }
 
@@ -1333,23 +1335,29 @@ function addProductRowToModal(article = "", name = "", qty = 1, link = "") {
     prodRow.className = 'script-product-row';
     prodRow.style = 'background: var(--bg-element); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 12px; position: relative;';
     
+    // 🛠 Генерируем случайные имена для динамических полей
+    const rnd1 = 'art_' + Math.random().toString(36).substring(2, 8);
+    const rnd2 = 'qty_' + Math.random().toString(36).substring(2, 8);
+    const rnd3 = 'name_' + Math.random().toString(36).substring(2, 8);
+
     prodRow.innerHTML = `
         <div class="flex-row" style="margin-bottom: 8px;">
             <div class="flex-2">
                 <span class="product-row-title small-label" style="display:block;">АРТИКУЛ ТОВАРА ${currentCount}</span>
-                <input type="text" class="input-textarea single-line script-input-art" value="${article}" placeholder="Вручную..." oninput="updateLiveScriptText()">
+                <input type="text" class="input-textarea single-line script-input-art" value="${article}" placeholder="Вручную..." oninput="updateLiveScriptText()" autocomplete="new-password" name="${rnd1}">
             </div>
             <div class="flex-1" style="max-width: 90px;">
                 <span class="small-label" style="display:block;">КОЛ-ВО (ШТ)</span>
-                <input type="number" class="input-textarea single-line script-input-qty" value="${qty}" min="1" oninput="updateLiveScriptText()">
+                <input type="number" class="input-textarea single-line script-input-qty" value="${qty}" min="1" oninput="updateLiveScriptText()" autocomplete="new-password" name="${rnd2}">
             </div>
             <button type="button" onclick="removeProductRowFromModal(this)" title="Удалить" style="background:none; border:none; color:var(--danger); font-size:16px; cursor:pointer; font-weight:bold;">✕</button>
         </div>
         <div>
             <span class="small-label" style="display:block;">НАИМЕНОВАНИЕ ТОВАРА</span>
-            <input type="text" class="input-textarea single-line script-input-name" data-link="${link}" value="${name}" placeholder="Например: Блеск для губ Pupa..." oninput="updateLiveScriptText()">
+            <input type="text" class="input-textarea single-line script-input-name" data-link="${link}" value="${name}" placeholder="Например: Блеск для губ Pupa..." oninput="updateLiveScriptText()" autocomplete="new-password" name="${rnd3}">
         </div>
     `;
+    
     container.appendChild(prodRow);
     updateLiveScriptText();
 }

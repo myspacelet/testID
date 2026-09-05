@@ -615,7 +615,7 @@ async function clearMyBookings() {
         let resetH = 0, resetM = 0;
         if (selectedChannel === 'HL') { resetH = 19; resetM = 30; }
         else if (selectedChannel === 'LIVE') { resetH = 21; resetM = 30; }
-        else if (selectedChannel === 'NIGHT') { resetH = 10; resetM = 0; }
+        else if (selectedChannel === 'NIGHT') { resetH = 10; resetM = 30; }
 
         let shiftStartMsk = new Date(nowMsk);
         shiftStartMsk.setHours(resetH, resetM, 0, 0);
@@ -1850,7 +1850,7 @@ async function loadMyStats() {
     let resetH = 0, resetM = 0;
     if (selectedChannel === 'HL') { resetH = 19; resetM = 30; }
     else if (selectedChannel === 'LIVE') { resetH = 21; resetM = 30; }
-    else if (selectedChannel === 'NIGHT') { resetH = 10; resetM = 0; }
+    else if (selectedChannel === 'NIGHT') { resetH = 10; resetM = 30; }
 
     let shiftStartMsk = new Date(nowMsk);
     shiftStartMsk.setHours(resetH, resetM, 0, 0);

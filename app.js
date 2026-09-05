@@ -372,7 +372,34 @@ async function handleLogout() {
 // ========================================================
 async function loadDatabase() {
     const statusText = document.querySelector('.status-active');
-    if (statusText) statusText.innerHTML = "⏳ Загрузка базы данных магазинов...";
+    
+    // 1. Проверяем кэш браузера при обновлении страницы
+    const cachedData = localStorage.getItem('localStoreDatabase');
+    
+    if (cachedData) {
+        // Если база есть в кэше, мгновенно загружаем её в память
+        storeDatabase = JSON.parse(cachedData);
+        const count = Object.keys(storeDatabase).length;
+        if (statusText) {
+            statusText.innerHTML = `🟢 База городов: активна (${count} маг.)`;
+            statusText.style.color = "var(--success)";
+        }
+    } else {
+        // Если базы нет (первый вход или сброс кэша браузера)
+        if (statusText) {
+            statusText.innerHTML = "🔴 База не загружена. Нажмите «Обновить базу сейчас» ➔";
+            statusText.style.color = "var(--danger)";
+        }
+    }
+}
+
+// Эта функция сработает ТОЛЬКО при ручном нажатии на кнопку
+async function updateDatabase() {
+    const statusText = document.querySelector('.status-active');
+    if (statusText) {
+        statusText.innerHTML = "⏳ Скачивание базы из Supabase...";
+        statusText.style.color = "var(--text-muted)";
+    }
     
     try {
         const { data, error } = await supabaseClient
@@ -386,7 +413,7 @@ async function loadDatabase() {
             const cleanCity = (store.city || '').trim();
             let addr = (store.address || '').trim();
             
-            // НОВАЯ ЛОГИКА: Если адрес начинается с названия города — отрезаем его
+            // Если адрес начинается с названия города — отрезаем его
             if (cleanCity && addr.toLowerCase().startsWith(cleanCity.toLowerCase())) {
                 addr = addr.substring(cleanCity.length).replace(/^[\s,]+/, '');
             }
@@ -397,11 +424,27 @@ async function loadDatabase() {
             };
         });
 
+        // 2. Обновляем рабочую переменную
         storeDatabase = formattedDb;
-        if (statusText) statusText.innerHTML = `🟢 База городов: активна (${data.length} маг.)`;
+        
+        // 3. Сохраняем скачанный словарь в кэш браузера!
+        localStorage.setItem('localStoreDatabase', JSON.stringify(formattedDb));
+        
+        if (statusText) {
+            statusText.innerHTML = `🟢 База городов: активна (${data.length} маг.)`;
+            statusText.style.color = "var(--success)";
+        }
+        
+        // Показываем наше красивое всплывающее уведомление
+        if (typeof showToast === 'function') {
+            showToast('✅ База успешно скачана и сохранена в браузере!');
+        }
     } catch (err) {
         console.error('Ошибка загрузки магазинов из Supabase:', err);
-        if (statusText) statusText.innerHTML = "🔴 Ошибка загрузки базы магазинов";
+        if (statusText) {
+            statusText.innerHTML = "🔴 Ошибка скачивания базы";
+            statusText.style.color = "var(--danger)";
+        }
     }
 }
 

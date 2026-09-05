@@ -2036,3 +2036,175 @@ function copyFoundCities(btnElement) {
         showToast('❌ Ошибка доступа к буферу');
     });
 }
+
+// ========================================================
+// 🏆 ТОП-3 БЛИЖАЙШИХ ГОРОДА
+// ========================================================
+async function showTop3Nearest() {
+    const userInput = document.getElementById('geo-search-input')?.value.trim();
+    if (!userInput) { showToast("⚠️ Введите адрес доставки клиента"); return; }
+
+    // Собираем все города, которые сейчас есть в результатах на экране
+    const cityElements = document.querySelectorAll('.result-city');
+    const citiesOnScreen = [];
+    cityElements.forEach(el => {
+        let pureCity = el.textContent || el.innerText;
+        pureCity = pureCity.replace(/(ТОЧНЫЙ МАГАЗИН|СОВПАДЕНИЕ ПО ГОРОДУ)/g, '').replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim();
+        if (pureCity && !citiesOnScreen.includes(pureCity)) citiesOnScreen.push(pureCity);
+    });
+
+    if (citiesOnScreen.length === 0) {
+        showToast("⚠️ Сначала найдите совпадения магазинов"); return;
+    }
+
+    const btn = document.getElementById('btn-top3');
+    const oldHtml = btn.innerHTML;
+    btn.innerHTML = '⏳...';
+    btn.disabled = true;
+
+    try {
+        let clientCoords = null;
+        const rawInput = userInput.toLowerCase();
+        const inputWords = rawInput.split(/[\s,]+/).filter(w => w.length > 0);
+        
+        // 1. Пытаемся найти клиентский город в нашем локальном кэше (чтобы не дергать Dadata)
+        if (inputWords.length > 0) {
+            let targetCityName = inputWords[0];
+            let cityArray = russianCitiesGeoCache[targetCityName];
+
+            if (!cityArray && inputWords.length > 1) {
+                const doubleWordCity = `${inputWords[0]} ${inputWords[1]}`;
+                if (russianCitiesGeoCache[doubleWordCity]) {
+                    targetCityName = doubleWordCity;
+                    cityArray = russianCitiesGeoCache[doubleWordCity];
+                }
+            }
+            if (cityArray && cityArray.length > 0) {
+                cityArray.sort((a, b) => b.population - a.population);
+                clientCoords = cityArray[0];
+            }
+        }
+
+        // 2. Если в кэше нет — делаем 1 запрос к DaData
+        if (!clientCoords) {
+            clientCoords = await fetchCoordinates(userInput);
+        }
+        
+        if (!clientCoords) {
+            showToast("❌ Населенный пункт не найден");
+            return;
+        }
+
+        let distances = [];
+
+        // Вычисляем расстояния до всех найденных магазинов
+        for (let cityName of citiesOnScreen) {
+            let cleanCityName = cityName.replace(/\(.*?\)/g, '').replace(/[,.]/g, '').trim().toLowerCase();
+            let cityGeoArray = russianCitiesGeoCache[cleanCityName] || russianCitiesGeoCache[cleanCityName.split(/[\s-]+/)[0]];
+            
+            if (cityGeoArray && cityGeoArray.length > 0) {
+                cityGeoArray.sort((a, b) => b.population - a.population);
+                const cityGeo = cityGeoArray[0];
+                const straightDist = calculateDistance(clientCoords.lat, clientCoords.lng, cityGeo.lat, cityGeo.lng);
+                distances.push({ name: cityName, dist: straightDist, tz: cityGeo.tz });
+            }
+        }
+
+        // Сортируем по возрастанию расстояния и берем 3 самых близких
+        distances.sort((a, b) => a.dist - b.dist);
+        const top3 = distances.slice(0, 3);
+
+        if (top3.length > 0) {
+            renderTop3Modal(top3);
+        } else {
+            showToast("⚠️ Не удалось сопоставить города");
+        }
+
+    } catch (err) {
+        console.error(err);
+        showToast("❌ Ошибка при расчете");
+    } finally {
+        btn.innerHTML = oldHtml;
+        btn.disabled = false;
+    }
+}
+
+// 🛠 Отрисовка модалки с Топ-3
+function renderTop3Modal(top3Array) {
+    let modal = document.getElementById('top3-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'top3-modal';
+        modal.className = 'city-modal-overlay'; // Используем классы маковской модалки
+        modal.addEventListener('click', (event) => { if (event.target.id === 'top3-modal') closeTop3Modal(); });
+        document.body.appendChild(modal);
+    }
+
+    let listHtml = top3Array.map((item, index) => {
+        const roadDistance = Math.round(item.dist * 1.4); // Дорожный коэффициент!
+        return `
+            <div class="city-modal-store-card" style="cursor:pointer; transition: 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'" onclick="selectCityFromTop3('${item.name.replace(/'/g, "\\'")}', ${roadDistance}, ${item.tz || 3})">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="store-title">🏆 ${index + 1}. ${item.name}</span>
+                    <span class="city-modal-badge selected-badge">Выбрать</span>
+                </div>
+                <div class="store-address" style="margin-top: 6px;">🚗 Расстояние по трассе: ~${roadDistance} км</div>
+            </div>
+        `;
+    }).join('');
+
+    modal.innerHTML = `
+        <div class="city-modal-container" style="max-width: 450px;">
+            <div class="city-modal-header">
+                <h3>🏆 Топ-3 ближайших города</h3>
+                <button class="city-modal-close-btn" onclick="closeTop3Modal()"></button>
+            </div>
+            <div class="city-modal-body" style="padding-top: 10px;">
+                ${listHtml}
+            </div>
+        </div>
+    `;
+    modal.style.display = 'flex';
+}
+
+function closeTop3Modal() {
+    const m = document.getElementById('top3-modal');
+    if(m) m.style.display = 'none';
+}
+
+// 🛠 Логика при выборе города из Топ-3
+function selectCityFromTop3(cityName, roadDistance, tz) {
+    closeTop3Modal();
+    
+    // Считаем местное время клиента
+    let clientTz = parseInt(tz, 10);
+    if (isNaN(clientTz)) clientTz = 3; 
+
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const localTimeOfClient = new Date(utc + (3600000 * clientTz));
+    const hours = String(localTimeOfClient.getHours()).padStart(2, '0');
+    const minutes = String(localTimeOfClient.getMinutes()).padStart(2, '0');
+    const currentHours = localTimeOfClient.getHours();
+    
+    // Обновляем текст под поиском
+    const output = document.getElementById('geo-result-output');
+    if (output) {
+        if (currentHours >= 21 || currentHours < 8) {
+            output.style.color = 'var(--danger)'; 
+            output.innerHTML = `⚠️ Выбран город из Топ-3: <strong>${cityName}</strong> (~${roadDistance} км, местное время <strong>${hours}:${minutes}</strong>). ПОЗДНО ДЛЯ ЗВОНКА! ❌`;
+        } else {
+            output.style.color = '#ea580c'; 
+            output.innerHTML = `💡 Выбран город из Топ-3: <strong>${cityName}</strong> (~${roadDistance} км, местное время <strong>${hours}:${minutes}</strong>)`;
+        }
+    }
+
+    // Триггерим нашу старую фичу с обводкой и скроллом!
+    globalNearestCityName = cityName;
+    highlightNearestCityRow(cityName); // Эта функция сама проскроллит экран куда надо
+    
+    const btnScroll = document.getElementById('btn-scroll-to-nearest');
+    if(btnScroll) btnScroll.classList.remove('hide');
+    
+    showToast(`📍 Выбран: ${cityName}`);
+}

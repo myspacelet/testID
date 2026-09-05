@@ -1231,11 +1231,13 @@ function renderAccounts() {
     
     let filtered = allAccountsData;
     
-    // 1. Сначала фильтруем по статусу (вкладки)
-    if (currentAccountsFilter === 'confirmed') {
-        filtered = filtered.filter(u => u.is_confirmed === true);
+// 1. Сначала фильтруем по статусу (вкладки)
+    if (currentAccountsFilter === 'blocked') {
+        // Заблокированные — это строго false (когда админ нажал "Заблокировать")
+        filtered = filtered.filter(u => u.is_confirmed === false);
     } else if (currentAccountsFilter === 'pending') {
-        filtered = filtered.filter(u => !u.is_confirmed);
+        // Ожидают — это null (когда только зарегистрировались и статус еще не задан)
+        filtered = filtered.filter(u => u.is_confirmed === null || u.is_confirmed === undefined);
     }
 
     // 2. Затем фильтруем по тексту поиска (живой поиск)
@@ -1250,9 +1252,16 @@ function renderAccounts() {
 
     container.innerHTML = filtered.map(u => {
         const isConfirmed = u.is_confirmed === true;
-        const roleLabel = u.role === 'admin' ? '👑 Администратор' : (u.role === 'id' ? '🚌 ИД 2.0' : '🎧 Оператор');
         
-        // 👇 НОВАЯ ЛОГИКА: Формируем кнопку лимита (проверяем u.no_limit)
+        // 🛠 ВЫПАДАЮЩИЙ СПИСОК РОЛЕЙ ВМЕСТО ОБЫЧНОГО ТЕКСТА
+        const roleSelect = `
+            <select onchange="changeUserRole('${u.id}', this.value, '${(u.full_name || '').replace(/'/g, "\\'")}')" style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 6px; font-size: 11px; margin-top: 4px; outline: none; cursor: pointer; border-right: 8px solid transparent;">
+                <option value="op" ${u.role === 'op' ? 'selected' : ''}>🎧 Оператор</option>
+                <option value="id" ${u.role === 'id' ? 'selected' : ''}>🚌 ИД 2.0</option>
+                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>👑 Администратор</option>
+            </select>
+        `;
+        
         const limitBtn = u.no_limit 
             ? `<button class="btn-status-toggle" style="background: var(--bg-element); color: var(--text-main); border: 1px solid var(--border-color);" onclick="toggleUserLimit('${u.id}', false)">🔒 Включить лимит</button>`
             : `<button class="btn-status-toggle" style="background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3);" onclick="toggleUserLimit('${u.id}', true)">⚡ Без лимитов</button>`;
@@ -1261,7 +1270,7 @@ function renderAccounts() {
             <div class="account-card-row">
                 <div class="account-info-main">
                     <span class="account-name-text">${u.full_name || 'Без имени'}</span>
-                    <span class="account-sub-text">${roleLabel}</span>
+                    ${roleSelect}
                 </div>
                 <div class="account-actions-side">
                     <span class="status-pill ${isConfirmed ? 'confirmed' : 'pending'}">
@@ -1280,6 +1289,33 @@ function renderAccounts() {
             </div>
         `;
     }).join('');
+}
+
+// 🛠 НОВАЯ ФУНКЦИЯ: Изменение роли пользователя
+async function changeUserRole(userId, newRole, fullName) {
+    if (!confirm(`Изменить роль пользователя ${fullName}?`)) {
+        renderAccounts(); // Сбрасываем селект обратно, если админ нажал Отмена
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('profiles')
+            .update({ role: newRole })
+            .eq('id', userId);
+
+        if (error) throw error;
+
+        // Обновляем данные на лету в памяти браузера
+        const target = allAccountsData.find(u => u.id === userId);
+        if (target) target.role = newRole;
+        
+        alert('✅ Роль успешно изменена!');
+    } catch (err) {
+        console.error("Ошибка при обновлении роли:", err);
+        alert("❌ Ошибка при изменении роли: " + err.message);
+        renderAccounts(); // Возвращаем интерфейс в исходное состояние при ошибке
+    }
 }
 
 async function toggleUserConfirmation(userId, newStatus, fullName) {

@@ -273,7 +273,8 @@ async function renderOperatorUI() {
             .select('time_slot')
             .eq('channel', selectedChannel)
             .eq('user_id', currentUser.id)
-            .eq('action', 'СТАРТ'); // 👈
+            .eq('action', 'СТАРТ')
+            .gte('created_at', utcShiftStart); 
             
         const finishedSlots = startLogs ? startLogs.map(l => l.time_slot) : [];
 

@@ -173,7 +173,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 const welcomeTitle = document.getElementById('app-welcome-title');
                 if (welcomeTitle && profile && profile.full_name) {
                     const firstName = profile.full_name.trim().replace(/^[^\s]+\s+/, '');
-                    welcomeTitle.innerText = `🚌 Добро пожаловать, ${firstName}!`;
+                    welcomeTitle.innerText = `Добро пожаловать, ${firstName}!`;
                     currentOperatorName = firstName;
                     updateAllOperatorInputs(firstName);
                 }

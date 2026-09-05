@@ -243,29 +243,57 @@
 
 <!-- 🗄️ МОДАЛКА ПАНЕЛИ ЛОГОВ -->
 <div id="modal-logs" class="modal-overlay" onclick="closeLogsModal(event)">
-    <div class="modal-content" style="max-width: 450px; display: flex; flex-direction: column; gap: 15px;" onclick="event.stopPropagation()">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-            <h3 class="input-label" style="font-size: 17px; margin: 0; color: var(--text-title);">🗄️ Управление логами</h3>
+    <div class="modal-content" style="max-width: 1000px; max-height: 90vh; display: flex; flex-direction: column; gap: 15px;" onclick="event.stopPropagation()">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <h3 class="input-label" style="font-size: 18px; margin: 0; color: var(--text-title);">🗄️ Просмотр логов</h3>
             <button class="modal-close-right" onclick="closeLogsModal(null)"></button>
         </div>
         
-        <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 10px 0;">Выберите период. Если даты не выбраны, скачается вся история.</p>
-
-        <div style="display: flex; gap: 10px;">
-            <div style="flex: 1;">
+        <!-- Панель управления логами -->
+        <div style="display: flex; gap: 15px; align-items: flex-end; background: var(--bg-hover); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap;">
+            
+            <div style="flex: 1; min-width: 130px;">
                 <label class="small-label">С даты:</label>
-                <input type="date" id="log-date-start" class="input-textarea single-line w-100" style="padding: 0 10px; cursor: pointer;">
+                <input type="date" id="log-date-start" class="input-textarea single-line w-100" style="padding: 0 10px; cursor: pointer;" onchange="loadLogsView()">
             </div>
-            <div style="flex: 1;">
+            
+            <div style="flex: 1; min-width: 130px;">
                 <label class="small-label">По дату:</label>
-                <input type="date" id="log-date-end" class="input-textarea single-line w-100" style="padding: 0 10px; cursor: pointer;">
+                <input type="date" id="log-date-end" class="input-textarea single-line w-100" style="padding: 0 10px; cursor: pointer;" onchange="loadLogsView()">
             </div>
+            
+            <!-- ПОИСК ПО ОПЕРАТОРУ -->
+            <div class="mac-search-wrapper" style="flex: 2; min-width: 220px; margin-bottom: 0;">
+                <input type="text" id="log-search-input" class="mac-search-input" style="width: 100%; box-sizing: border-box; height: 42px; border-radius: 10px; font-size: 13px;" placeholder="Поиск оператора..." oninput="filterLogsTable()" autocomplete="new-password">
+                <button type="button" class="mac-search-clear" id="log-search-clear" onclick="clearLogsSearch()" style="top: 50%; transform: translateY(-50%); right: 10px;">✕</button>
+            </div>
+
+            <!-- КНОПКИ -->
+            <button class="btn-main" style="padding: 0 20px; height: 42px; background: #00aeef; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; flex: none;" onclick="actionLogs('download')">📥 Скачать CSV</button>
+            <button class="btn-main" style="padding: 0 20px; height: 42px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; font-weight: 600; cursor: pointer; flex: none;" onclick="actionLogs('delete')">🗑️ Удалить</button>
         </div>
 
-        <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button class="btn-main btn-primary" style="flex: 1; padding: 10px; background: #00aeef; color: white;" onclick="actionLogs('download')">📥 Скачать CSV</button>
-            <button class="btn-main btn-primary" style="flex: 1; padding: 10px; background: rgba(255, 95, 86, 0.1); color: #ff5f56; border: 1px solid rgba(255, 95, 86, 0.3);" onclick="actionLogs('delete')">🗑️ Удалить</button>
+        <!-- Таблица логов -->
+        <div style="overflow-y: auto; flex: 1; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-element);">
+            <table class="wl-data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                <thead style="position: sticky; top: 0; background: var(--bg-element); z-index: 10; font-size: 11px; text-transform: uppercase;">
+                    <tr>
+                        <th>Дата</th>
+                        <th>Время</th>
+                        <th>Канал</th>
+                        <th>Оператор</th>
+                        <th>Действие</th>
+                        <th>Интервал</th>
+                        <th>Факт. время</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-table-body">
+                    <tr><td colspan="7" class="text-center small-label" style="padding: 30px;">⏳ Выберите период...</td></tr>
+                </tbody>
+            </table>
         </div>
+        
     </div>
 </div>
 </body>

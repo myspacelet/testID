@@ -1477,13 +1477,25 @@ async function confirmAllPendingAccounts() {
 }
 
 // ========================================================
-// 🗄️ ПАНЕЛЬ УПРАВЛЕНИЯ ЛОГАМИ (СКАЧАТЬ / УДАЛИТЬ)
+// 🗄️ ПАНЕЛЬ УПРАВЛЕНИЯ ЛОГАМИ (СКАЧАТЬ / УДАЛИТЬ / ПРОСМОТРЕТЬ)
 // ========================================================
+let currentLogsData = []; // Сохраняем логи в памяти для поиска и скачивания
+
 function openLogsModal() {
     document.getElementById('modal-logs').classList.add('open');
-    // Очищаем инпуты при открытии
-    document.getElementById('log-date-start').value = '';
-    document.getElementById('log-date-end').value = '';
+    
+    // Чтобы не перегружать сервер, по умолчанию ставим СЕГОДНЯШНЮЮ дату
+    const now = new Date();
+    const mskOffset = 3 * 60 * 60 * 1000;
+    const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
+    const todayStr = nowMsk.toISOString().split('T')[0];
+    
+    document.getElementById('log-date-start').value = todayStr;
+    document.getElementById('log-date-end').value = todayStr;
+    document.getElementById('log-search-input').value = '';
+    
+    // Сразу загружаем и показываем
+    loadLogsView();
 }
 
 function closeLogsModal(event) {
@@ -1492,39 +1504,17 @@ function closeLogsModal(event) {
     }
 }
 
-async function actionLogs(actionType) {
-    if (currentRole !== 'admin') {
-        alert('⛔ У вас нет прав для этого действия!');
-        return;
-    }
-
+// Загрузка логов с сервера
+async function loadLogsView() {
+    const tbody = document.getElementById('logs-table-body');
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center small-label" style="padding: 30px;">⏳ Загрузка логов...</td></tr>';
+    
     const startDateVal = document.getElementById('log-date-start').value;
     const endDateVal = document.getElementById('log-date-end').value;
 
-    // Для удаления мы ЖЕСТКО требуем выбрать даты
-    if (actionType === 'delete' && (!startDateVal || !endDateVal)) {
-        alert('⚠️ Для удаления логов необходимо обязательно выбрать начальную и конечную даты!');
-        return;
-    }
-
-    if (actionType === 'delete') {
-        if (!confirm(`🚨 ВНИМАНИЕ!\nВы собираетесь безвозвратно удалить логи с ${startDateVal} по ${endDateVal}.\nПродолжить?`)) return;
-    }
-
     try {
-        document.body.style.cursor = 'wait';
+        let query = supabaseClient.from('global_log').select('*').order('created_at', { ascending: false });
 
-        // Формируем базовый запрос к таблице global_log
-        let query = supabaseClient.from('global_log');
-
-        // Выбираем действие: удалять (delete) или получать (select)
-        if (actionType === 'delete') {
-            query = query.delete();
-        } else {
-            query = query.select('*').order('created_at', { ascending: false });
-        }
-
-        // Если админ выбрал даты — добавляем фильтры (с учетом часового пояса МСК)
         if (startDateVal) {
             const startMsk = new Date(`${startDateVal}T00:00:00+03:00`).toISOString();
             query = query.gte('created_at', startMsk);
@@ -1534,22 +1524,127 @@ async function actionLogs(actionType) {
             query = query.lte('created_at', endMsk);
         }
 
-        // ВЫПОЛНЯЕМ ЗАПРОС К БАЗЕ
-        const { data, error } = await query;
+        // Ограничиваем выдачу, чтобы браузер не завис (админ всё равно может отфильтровать)
+        query = query.limit(2000);
 
+        const { data, error } = await query;
         if (error) throw error;
 
-        // 🛑 ОБРАБОТКА УДАЛЕНИЯ
-        if (actionType === 'delete') {
-            alert('✅ Логи за выбранный период успешно удалены!');
-            closeLogsModal(null);
-            loadAdminMonitor(currentAdminChannel); // Обновляем доску на всякий случай
-            return;
+        currentLogsData = data || [];
+        renderLogsTable();
+
+    } catch (err) {
+        console.error("Ошибка загрузки логов:", err);
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="color: #ff5f56; padding: 30px;">❌ Ошибка загрузки базы</td></tr>';
+    }
+}
+
+// Отрисовка таблицы и применение поиска
+function renderLogsTable() {
+    const tbody = document.getElementById('logs-table-body');
+    const searchQuery = (document.getElementById('log-search-input')?.value || '').trim().toLowerCase();
+    
+    const clearBtn = document.getElementById('log-search-clear');
+    if (clearBtn) clearBtn.style.opacity = searchQuery.length > 0 ? '1' : '0';
+
+    let filtered = currentLogsData;
+
+    // Фильтр по оператору
+    if (searchQuery) {
+        filtered = filtered.filter(row => (row.operator_name || '').toLowerCase().includes(searchQuery));
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center small-label" style="padding: 30px;">Ничего не найдено</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(row => {
+        const dateObj = new Date(row.created_at);
+        const dateStr = dateObj.toLocaleDateString('ru-RU');
+        const timeStr = dateObj.toLocaleTimeString('ru-RU');
+
+        let durationStr = '-';
+        if (row.actual_duration_seconds) {
+            const m = Math.floor(row.actual_duration_seconds / 60);
+            const s = row.actual_duration_seconds % 60;
+            durationStr = `${m} мин ${s} сек`;
         }
 
-        // 📥 ОБРАБОТКА СКАЧИВАНИЯ (если actionType === 'download')
-        if (!data || data.length === 0) {
-            alert('За выбранный период логов не найдено.');
+        // Цветовая раскраска действий для красоты
+        let actionColor = 'var(--text-main)';
+        if (row.action === 'СТАРТ') actionColor = '#a855f7';       // Фиолетовый
+        else if (row.action === 'ЗАВЕРШЕН') actionColor = '#00aeef'; // Голубой
+        else if (row.action === 'БРОНЬ') actionColor = '#22c55e';    // Зеленый
+        else if (row.action === 'ОТМЕНА' || row.action === 'ОЧИСТКА' || row.action?.includes('СБРОС')) actionColor = '#ff5f56'; // Красный
+
+        return `
+            <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-card);">
+                <td style="padding: 12px 10px;">${dateStr}</td>
+                <td style="padding: 12px 10px; color: var(--text-muted);">${timeStr}</td>
+                <td style="padding: 12px 10px; font-weight: 600;">${row.channel || ''}</td>
+                <td style="padding: 12px 10px;">${row.operator_name || 'Неизвестно'}</td>
+                <td style="padding: 12px 10px; font-weight: 700; color: ${actionColor}; font-size: 11px;">${row.action || ''}</td>
+                <td style="padding: 12px 10px; font-family: monospace; font-size: 12px;">${row.time_slot || '-'}</td>
+                <td style="padding: 12px 10px; color: var(--text-muted);">${durationStr}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function filterLogsTable() {
+    renderLogsTable();
+}
+
+function clearLogsSearch() {
+    const searchInput = document.getElementById('log-search-input');
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+    }
+    renderLogsTable();
+}
+
+// Универсальная функция (Скачать или Удалить)
+async function actionLogs(actionType) {
+    if (currentRole !== 'admin') return;
+
+    const startDateVal = document.getElementById('log-date-start').value;
+    const endDateVal = document.getElementById('log-date-end').value;
+
+    // УДАЛЕНИЕ ЛОГОВ ИЗ БАЗЫ
+    if (actionType === 'delete') {
+        if (!startDateVal || !endDateVal) {
+            alert('⚠️ Для удаления необходимо обязательно выбрать начальную и конечную даты!');
+            return;
+        }
+        if (!confirm(`🚨 ВНИМАНИЕ!\nВы собираетесь безвозвратно удалить логи с ${startDateVal} по ${endDateVal}.\nПродолжить?`)) return;
+        
+        try {
+            document.body.style.cursor = 'wait';
+            let query = supabaseClient.from('global_log').delete();
+            const startMsk = new Date(`${startDateVal}T00:00:00+03:00`).toISOString();
+            const endMsk = new Date(`${endDateVal}T23:59:59.999+03:00`).toISOString();
+            query = query.gte('created_at', startMsk).lte('created_at', endMsk);
+            
+            const { error } = await query;
+            if (error) throw error;
+            
+            alert('✅ Логи за выбранный период успешно удалены!');
+            loadLogsView(); // Перезагружаем таблицу на лету
+        } catch (e) {
+            console.error(e);
+            alert("❌ Произошла ошибка. Проверьте консоль.");
+        } finally {
+            document.body.style.cursor = 'default';
+        }
+        return;
+    }
+
+    // СКАЧИВАНИЕ CSV-ФАЙЛА
+    if (actionType === 'download') {
+        if (!currentLogsData || currentLogsData.length === 0) {
+            alert('Нет данных для скачивания. Сначала выберите период.');
             return;
         }
 
@@ -1557,7 +1652,15 @@ async function actionLogs(actionType) {
         const headers = ['Дата', 'Время', 'Канал', 'Оператор', 'Действие', 'Интервал', 'Факт. время'];
         csvRows.push(headers.join(';')); 
 
-        data.forEach(row => {
+        // При скачивании тоже применяем фильтр, чтобы качалось только то, что нашел админ в поиске
+        const searchQuery = (document.getElementById('log-search-input')?.value || '').trim().toLowerCase();
+        let dataToDownload = currentLogsData;
+        
+        if (searchQuery) {
+            dataToDownload = dataToDownload.filter(row => (row.operator_name || '').toLowerCase().includes(searchQuery));
+        }
+
+        dataToDownload.forEach(row => {
             const dateObj = new Date(row.created_at);
             const dateStr = dateObj.toLocaleDateString('ru-RU');
             const timeStr = dateObj.toLocaleTimeString('ru-RU');
@@ -1591,14 +1694,6 @@ async function actionLogs(actionType) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
-        closeLogsModal(null);
-
-    } catch (e) {
-        console.error("Ошибка при работе с логами:", e);
-        alert("❌ Произошла ошибка. Проверьте консоль.");
-    } finally {
-        document.body.style.cursor = 'default';
     }
 }
 

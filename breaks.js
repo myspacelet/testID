@@ -1261,12 +1261,8 @@ function renderAccounts() {
                 <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>👑 Администратор</option>
             </select>
         `;
-                <option value="id" ${u.role === 'id' ? 'selected' : ''}>🚌 ИД 2.0</option>
-                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>👑 Администратор</option>
-            </select>
-        `;
         
-        const limitBtn = u.no_limit 
+        const limitBtn = u.no_limit
             ? `<button class="btn-status-toggle" style="background: var(--bg-element); color: var(--text-main); border: 1px solid var(--border-color);" onclick="toggleUserLimit('${u.id}', false)">🔒 Включить лимит</button>`
             : `<button class="btn-status-toggle" style="background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3);" onclick="toggleUserLimit('${u.id}', true)">⚡ Без лимитов</button>`;
         

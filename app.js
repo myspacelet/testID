@@ -192,6 +192,10 @@ window.addEventListener('DOMContentLoaded', async () => {
                         };
                     }
                 }
+                
+                // 🛠 ПРИ ЗАГРУЗКЕ СТРАНИЦЫ ЗАПРАШИВАЕМ КОЛИЧЕСТВО ЗАДАЧ
+                updateWaitingListBadge();
+                
             } else {
                 // Учетка есть, но не одобрена (или ошибка) -> разлогиниваем и показываем форму
                 await supabaseClient.auth.signOut();
@@ -1708,6 +1712,20 @@ async function loadWaitingList() {
     try {
         const { data, error } = await supabaseClient.from('waiting_list').select('*').order('id', { ascending: true }); 
         if (error) throw error;
+        
+        // 🛠 ОБНОВЛЯЕМ БЕЙДЖ ПРИ ЛЮБОМ ИЗМЕНЕНИИ ЛИСТА
+        const badge = document.getElementById('wl-badge-counter');
+        if (badge) {
+            if (data && data.length > 0) {
+                badge.innerText = data.length;
+                badge.classList.remove('hide');
+                badge.style.transform = 'scale(1.15)'; // Маленькая анимация пульсации
+                setTimeout(() => badge.style.transform = 'scale(1)', 200);
+            } else {
+                badge.classList.add('hide');
+            }
+        }
+
         if (!data || data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" class="text-center small-label">⏳ Активных задач нет</td></tr>`;
             return;
@@ -2219,4 +2237,25 @@ function selectCityFromTop3(cityName, roadDistance, tz) {
     if(btnScroll) btnScroll.classList.remove('hide');
     
     showToast(`📍 Выбран: ${cityName}`);
+}
+
+// 🛠 НОВАЯ ФУНКЦИЯ: Быстрая загрузка количества задач для бейджа
+async function updateWaitingListBadge() {
+    const badge = document.getElementById('wl-badge-counter');
+    if (!badge) return;
+    try {
+        // head: true означает, что Supabase не качает сами данные, а отдает только цифру (очень быстро!)
+        const { count, error } = await supabaseClient
+            .from('waiting_list')
+            .select('*', { count: 'exact', head: true });
+        
+        if (!error) {
+            if (count > 0) {
+                badge.innerText = count;
+                badge.classList.remove('hide');
+            } else {
+                badge.classList.add('hide');
+            }
+        }
+    } catch (err) { console.error("Ошибка бейджа:", err); }
 }

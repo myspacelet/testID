@@ -80,7 +80,10 @@
 
     <div class="order-management-panel">
         <button onclick="buildOrderProcessingModal()" class="btn-order-action">⚙️ Обработать заказ</button>
-        <button onclick="openFloatingModal('modal-waiting-list')" class="btn-order-action">⏳ Лист ожидания</button>
+        <button onclick="openFloatingModal('modal-waiting-list')" class="btn-order-action" style="position: relative;">
+            ⏳ Лист ожидания
+            <span id="wl-badge-counter" class="mac-notification-badge hide">0</span>
+        </button>
         <button onclick="openFloatingModal('modal-send-form')" class="btn-order-action">✉️ Форма отправки</button>
     </div>
 

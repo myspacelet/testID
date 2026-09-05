@@ -67,22 +67,42 @@ window.addEventListener('DOMContentLoaded', async () => {
                     const response = await fetch("https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/address", {
                         method: "POST",
                         headers: { "Content-Type": "application/json", "Accept": "application/json", "Authorization": "Token " + DADATA_API_TOKEN },
-                        body: JSON.stringify({ query: query, count: 5 }) // Просим 5 вариантов
+                        // 🛠 ИЗМЕНЕНИЕ 1: Жестко ограничиваем поиск только городами и населенными пунктами (без улиц)
+                        body: JSON.stringify({ 
+                            query: query, 
+                            count: 5,
+                            from_bound: { value: "city" },
+                            to_bound: { value: "settlement" }
+                        }) 
                     });
                     const result = await response.json();
                     
                     if (result.suggestions && result.suggestions.length > 0) {
                         suggestionsBox.innerHTML = '';
                         result.suggestions.forEach(item => {
+                            const data = item.data;
+                            
+                            // 🛠 ИЗМЕНЕНИЕ 2: Формируем красивое название без "г."
+                            let cityName = data.city || data.settlement || data.region;
+                            if (!cityName) return; // Защита от пустых строк
+
+                            let displayName = cityName;
+                            
+                            // Умное добавление региона (области/края)
+                            // Если регион есть, и он не дублирует город, и это не город федерального значения
+                            if (data.region_with_type && data.region !== cityName && !["Москва", "Санкт-Петербург", "Севастополь"].includes(cityName)) {
+                                displayName += `, ${data.region_with_type}`;
+                            }
+
                             const div = document.createElement('div');
                             div.className = 'suggestion-item';
-                            div.innerText = item.value; // Полный адрес (Кадошкино, Мордовия)
+                            div.innerText = displayName; // Вставляем наше чистое название
                             
                             // При клике на подсказку
                             div.onclick = () => {
-                                geoInput.value = item.value; // Вставляем в поле
+                                geoInput.value = displayName; // Вставляем в поле поиска тоже чистое название
                                 suggestionsBox.classList.add('hide'); // Прячем список
-                                findNearestStore(); // Автоматически запускаем поиск!
+                                findNearestStore(); // Автоматически запускаем поиск
                             };
                             suggestionsBox.appendChild(div);
                         });
@@ -93,8 +113,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 } catch (err) {
                     console.error("Ошибка автозаполнения:", err);
                 }
-            }, 400); 
-        });
+            }, 400);
 
         // Скрываем список, если кликнуть в пустую область экрана
         document.addEventListener('click', (e) => {

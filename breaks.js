@@ -1255,8 +1255,12 @@ function renderAccounts() {
         
         // 🛠 ВЫПАДАЮЩИЙ СПИСОК РОЛЕЙ ВМЕСТО ОБЫЧНОГО ТЕКСТА
         const roleSelect = `
-            <select onchange="changeUserRole('${u.id}', this.value, '${(u.full_name || '').replace(/'/g, "\\'")}')" style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 6px; font-size: 11px; margin-top: 4px; outline: none; cursor: pointer; border-right: 8px solid transparent;">
+            <select class="mac-role-select" onchange="changeUserRole('${u.id}', this.value, '${(u.full_name || '').replace(/'/g, "\\'")}')">
                 <option value="op" ${u.role === 'op' ? 'selected' : ''}>🎧 Оператор</option>
+                <option value="id" ${u.role === 'id' ? 'selected' : ''}>🚌 ИД 2.0</option>
+                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>👑 Администратор</option>
+            </select>
+        `;
                 <option value="id" ${u.role === 'id' ? 'selected' : ''}>🚌 ИД 2.0</option>
                 <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>👑 Администратор</option>
             </select>

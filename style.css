@@ -1978,3 +1978,24 @@ body.dark-mode .ie-slot-item.unique-slot {
     cursor: pointer;
     flex: none;
 }
+
+/* ========================================================
+   ВЫПАДАЮЩИЙ СПИСОК РОЛЕЙ (АДМИНКА)
+   ======================================================== */
+.mac-role-select {
+    background: var(--bg-main);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 11px;
+    margin-top: 4px;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Жестко красим выпадающие пункты, чтобы ОС не перекрывала их белым цветом */
+.mac-role-select option {
+    background: var(--bg-main);
+    color: var(--text-main);
+}

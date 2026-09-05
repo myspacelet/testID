@@ -448,8 +448,6 @@ async function updateDatabase() {
     }
 }
 
-function updateDatabase() { loadDatabase(); }
-
 async function loadExternalGeoDatabase() {
     const statusText = document.querySelector('.status-active');
     const originalStatus = statusText ? statusText.innerHTML : "";

@@ -11,6 +11,7 @@ let currentUser = null;
 let currentOperatorName = 'Оператор';
 let currentRole = null;
 let selectedChannel = null;
+let isActionInProgress = false;
 
 // ========================================================
 // 🚀 ПРОВЕРКА АВТОРИЗАЦИИ И МАРШРУТИЗАЦИЯ
@@ -1586,14 +1587,14 @@ function renderLogsTable() {
         else if (row.action === 'ОТМЕНА' || row.action === 'ОЧИСТКА' || row.action?.includes('СБРОС')) actionColor = '#ff5f56'; // Красный
 
         return `
-            <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-card);">
-                <td style="padding: 12px 10px;">${dateStr}</td>
-                <td style="padding: 12px 10px; color: var(--text-muted);">${timeStr}</td>
-                <td style="padding: 12px 10px; font-weight: 600;">${row.channel || ''}</td>
-                <td style="padding: 12px 10px;">${row.operator_name || 'Неизвестно'}</td>
-                <td style="padding: 12px 10px; font-weight: 700; color: ${actionColor}; font-size: 11px;">${row.action || ''}</td>
-                <td style="padding: 12px 10px; font-family: monospace; font-size: 12px;">${row.time_slot || '-'}</td>
-                <td style="padding: 12px 10px; color: var(--text-muted);">${durationStr}</td>
+            <tr class="stats-row">
+                <td>${dateStr}</td>
+                <td style="color: var(--text-muted);">${timeStr}</td>
+                <td style="font-weight: 600;">${row.channel || ''}</td>
+                <td>${row.operator_name || 'Неизвестно'}</td>
+                <td style="font-weight: 700; color: ${actionColor}; font-size: 11px;">${row.action || ''}</td>
+                <td style="font-family: monospace; font-size: 12px;">${row.time_slot || '-'}</td>
+                <td style="color: var(--text-muted);">${durationStr}</td>
             </tr>
         `;
     }).join('');

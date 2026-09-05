@@ -1799,3 +1799,179 @@ body.dark-mode .ie-slot-item.unique-slot {
     z-index: 10;
     transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+
+/* ========================================================
+   📊 МОДАЛКА ЛИЧНОЙ СТАТИСТИКИ ОПЕРАТОРА
+   ======================================================== */
+.modal-content-stats {
+    max-width: 800px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.stats-title {
+    font-size: 18px;
+    margin: 0;
+    color: var(--text-title);
+}
+
+.stats-summary-box {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.stats-badge-shift {
+    background: rgba(0, 174, 239, 0.1);
+    border: 1px solid rgba(0, 174, 239, 0.3);
+    padding: 10px 15px;
+    border-radius: 8px;
+    color: #00aeef;
+    font-weight: 600;
+}
+
+.stats-badge-month {
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    padding: 10px 15px;
+    border-radius: 8px;
+    color: #a855f7;
+    font-weight: 600;
+}
+
+.stats-val {
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+.stats-table-wrapper {
+    overflow-y: auto;
+    flex: 1;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-element);
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px;
+}
+
+.stats-table th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-element);
+    z-index: 10;
+    font-size: 11px;
+    text-transform: uppercase;
+    padding: 10px;
+}
+
+.stats-table td {
+    padding: 10px;
+}
+
+.stats-row {
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-card);
+}
+
+/* ========================================================
+   🗄️ МОДАЛКА ПАНЕЛИ ЛОГОВ (АДМИН)
+   ======================================================== */
+.modal-content-logs {
+    max-width: 1000px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.logs-title {
+    font-size: 18px;
+    margin: 0;
+    color: var(--text-title);
+}
+
+.logs-controls-panel {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+    background: var(--bg-hover);
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.logs-date-col {
+    flex: 1;
+    min-width: 130px;
+}
+
+.logs-date-input {
+    padding: 0 10px;
+    cursor: pointer;
+}
+
+.logs-search-wrapper {
+    flex: 2;
+    min-width: 220px;
+    margin-bottom: 0;
+}
+
+.logs-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    height: 42px;
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+.logs-search-clear {
+    top: 50%;
+    transform: translateY(-50%);
+    right: 10px;
+}
+
+.logs-btn-download {
+    padding: 0 20px;
+    height: 42px;
+    background: #00aeef;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    flex: none;
+}
+
+.logs-btn-delete {
+    padding: 0 20px;
+    height: 42px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    flex: none;
+}

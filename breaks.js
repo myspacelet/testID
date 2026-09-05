@@ -268,7 +268,7 @@ async function renderOperatorUI() {
 
         if (bookingsError) throw bookingsError;
 
-        const { data: startLogs, error: logsError } = await supabaseClient
+const { data: startLogs, error: logsError } = await supabaseClient
             .from('global_log')
             .select('time_slot')
             .eq('channel', selectedChannel)

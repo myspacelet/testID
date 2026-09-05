@@ -1121,10 +1121,22 @@ function closeFloatingModal(modalId) {
 function minimizeOrderModal() {
     document.getElementById('modal-process-order').style.display = 'none';
     document.getElementById('btn-minimized-order').classList.remove('hide');
+    
+    // 🛠 ИСПРАВЛЕНИЕ: Делаем панель навигации видимой, даже если поиск товаров еще не запускался
+    const scrollNav = document.getElementById('scroll-nav');
+    if (scrollNav) scrollNav.classList.add('visible');
 }
 
 function restoreOrderModal() {
     document.getElementById('btn-minimized-order').classList.add('hide');
+    
+    // 🛠 ИСПРАВЛЕНИЕ: Скрываем пустую панель навигации обратно, если результатов поиска нет на экране
+    const resultsSection = document.getElementById('results-section');
+    const scrollNav = document.getElementById('scroll-nav');
+    if (resultsSection && resultsSection.classList.contains('hide') && scrollNav) {
+        scrollNav.classList.remove('visible');
+    }
+    
     const modal = document.getElementById('modal-process-order');
     if (modal) {
         modal.classList.remove('hide');
@@ -1287,6 +1299,14 @@ function buildOrderProcessingModal() {
     }
 
     if (container.querySelectorAll('.script-product-row').length === 0) addProductRowToModal("", "", 1, "");
+    
+    // 🛠 ИСПРАВЛЕНИЕ: Автоматически подтягиваем город в скрипт, если он уже введён в поиске Dadata
+    const geoVal = document.getElementById('geo-search-input')?.value.trim();
+    const addrInput = document.getElementById('script-delivery-address');
+    if (geoVal && addrInput && !addrInput.value) { 
+        addrInput.value = geoVal; 
+    }
+
     openFloatingModal('modal-process-order');
     handleScriptToggleChange();
     updateLiveScriptText();
@@ -1542,6 +1562,14 @@ function refreshProductContainerOnly() {
             addProductRowToModal(detectedArticle, detectedName, requiredStock, detectedLink);
         }
     }
+    
+    // 🛠 ИСПРАВЛЕНИЕ: Принудительно обновляем город при нажатии на кнопку синхронизации (🔄)
+    const geoVal = document.getElementById('geo-search-input')?.value.trim();
+    const addrInput = document.getElementById('script-delivery-address');
+    if (geoVal && addrInput) { 
+        addrInput.value = geoVal; 
+    }
+    updateLiveScriptText();
 }
 
 function openCityShopsModal(cityName) {

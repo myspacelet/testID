@@ -706,13 +706,18 @@ function startSearch() {
                     }
                 });
 
-                // Если в магазине есть хоть что-то, добавляем его в список
                 if (totalStockInShop > 0) {
+                    
+                    // 🛠 ИСПРАВЛЕНИЕ: Если ищем только 1 товар, отсекаем магазины, где не хватает количества
+                    if (activeLists.length === 1 && !isExact) {
+                        return; // Пропускаем этот магазин, он не пойдет в "Совпадения по городу"
+                    }
+                    
                     cityShopsWithStock.push({ 
                         code, 
                         sortStock: isExact ? 100000 + totalStockInShop : (foundPositions.length * 1000) + totalStockInShop, 
                         totalStock: totalStockInShop,
-                        foundPositions: foundPositions, // 👈 Передаем массив номеров дальше
+                        foundPositions: foundPositions, 
                         isExact: isExact
                     });
                 }

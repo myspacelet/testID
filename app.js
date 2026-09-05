@@ -1078,6 +1078,12 @@ function resetAllForm() {
 // ========================================================
 // 🪟 УПРАВЛЕНИЕ ОКНАМИ И МОДАЛКАМИ
 // ========================================================
+function killBrowserAutocomplete() {
+    document.querySelectorAll('input:not(#auth-email):not(#auth-password)').forEach(input => {
+        input.setAttribute('autocomplete', 'new-password'); 
+    });
+}
+
 function openFloatingModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -1087,18 +1093,17 @@ function openFloatingModal(modalId) {
         if (modalId === 'modal-waiting-list') loadWaitingList();
         if (modalId === 'modal-send-form') loadShablons();
         
-        // Динамическое центрирование средствами CSS
         modal.style.left = '50%';
-        
         if (modalId === 'modal-process-order') {
             modal.style.top = '40px';
-            modal.style.transform = 'translateX(-50%)'; // Только по горизонтали
+            modal.style.transform = 'translateX(-50%)'; 
         } else {
             modal.style.top = '50%';
-            modal.style.transform = 'translate(-50%, -60%)'; // По центру и чуть выше уровня глаз
+            modal.style.transform = 'translate(-50%, -60%)'; 
         }
         
         focusModal(modal);
+        killBrowserAutocomplete(); // Убиваем списки истории при каждом открытии
     }
 }
 
@@ -1108,6 +1113,7 @@ function closeFloatingModal(modalId) {
         modal.classList.add('hide');
         modal.style.display = 'none';
         
+        // Жесткая зачистка Карточки обработки заказа
         if (modalId === 'modal-process-order') {
             isConvenientToTalk = null;
             document.getElementById('btn-minimized-order')?.classList.add('hide');
@@ -1120,10 +1126,10 @@ function closeFloatingModal(modalId) {
             handleScriptToggleChange();
         }
 
-        // 🛠 ИСПРАВЛЕНИЕ: Принудительно сворачиваем и очищаем форму Листа ожидания
+        // Жесткая зачистка и сворачивание Листа ожидания
         if (modalId === 'modal-waiting-list') {
             resetWlFormInputsOnly();
-            document.getElementById('wl-add-form-block')?.classList.remove('active');
+            document.getElementById('wl-add-form-block')?.classList.remove('active'); // Принудительно прячем форму
             document.getElementById('wl-btn-delete')?.classList.add('hide');
             const saveBtn = document.querySelector('.wl-btn-save');
             if (saveBtn) { saveBtn.innerText = 'Сохранить'; saveBtn.setAttribute('onclick', 'saveNewTaskToSupabase()'); saveBtn.style.background = 'var(--primary)'; }
@@ -1134,22 +1140,17 @@ function closeFloatingModal(modalId) {
 function minimizeOrderModal() {
     document.getElementById('modal-process-order').style.display = 'none';
     document.getElementById('btn-minimized-order').classList.remove('hide');
-    
-    // 🛠 ИСПРАВЛЕНИЕ: Делаем панель навигации видимой, даже если поиск товаров еще не запускался
     const scrollNav = document.getElementById('scroll-nav');
     if (scrollNav) scrollNav.classList.add('visible');
 }
 
 function restoreOrderModal() {
     document.getElementById('btn-minimized-order').classList.add('hide');
-    
-    // 🛠 ИСПРАВЛЕНИЕ: Скрываем пустую панель навигации обратно, если результатов поиска нет на экране
     const resultsSection = document.getElementById('results-section');
     const scrollNav = document.getElementById('scroll-nav');
     if (resultsSection && resultsSection.classList.contains('hide') && scrollNav) {
         scrollNav.classList.remove('visible');
     }
-    
     const modal = document.getElementById('modal-process-order');
     if (modal) {
         modal.classList.remove('hide');
@@ -1168,32 +1169,24 @@ function initModalDrag(e, modalId) {
     if (e.target.classList.contains('floating-modal-close') || e.target.classList.contains('modal-control-btn') || e.target.classList.contains('modal-close-right')) return;
     const modal = document.getElementById(modalId);
     if (!modal) return;
-    
     focusModal(modal);
     activeDraggedModal = modal;
     const rect = modal.getBoundingClientRect();
     modalXOffset = e.clientX - rect.left;
     modalYOffset = e.clientY - rect.top;
-    
     document.addEventListener('mousemove', handleModalDrag);
     document.addEventListener('mouseup', stopModalDrag);
 }
 
 function handleModalDrag(e) {
     if (!activeDraggedModal) return;
-    
     let newX = e.clientX - modalXOffset;
     let newY = e.clientY - modalYOffset;
-    
-    // Не даем утащить окно за пределы экрана
     if (newX < 0) newX = 0;
     if (newY < 0) newY = 0;
     if (newX > window.innerWidth - 100) newX = window.innerWidth - 100;
     if (newY > window.innerHeight - 40) newY = window.innerHeight - 40;
-    
-    // Сбрасываем жесткое центрирование, чтобы окно плавно следовало за мышью
     activeDraggedModal.style.transform = 'none';
-    
     activeDraggedModal.style.left = newX + 'px';
     activeDraggedModal.style.top = newY + 'px';
 }
@@ -1284,9 +1277,17 @@ function buildOrderProcessingModal() {
         return;
     }
 
-    if (!minBtn || minBtn.classList.contains('hide')) {
+if (!minBtn || minBtn.classList.contains('hide')) {
         container.innerHTML = ''; 
-        if (document.getElementById('script-client-name')) document.getElementById('script-client-name').value = ''; 
+        
+        // 🛠 ЖЕСТКАЯ ОЧИСТКА ВСЕХ ПОЛЕЙ ПРИ НОВОМ ОТКРЫТИИ ОКНА
+        const inputsToClear = ['script-client-name', 'script-delivery-address', 'script-rec-fio', 'script-rec-phone', 'script-deliv-price', 'script-deliv-days', 'script-deliv-date', 'script-order-number', 'script-manual-store'];
+        inputsToClear.forEach(id => { 
+            const el = document.getElementById(id);
+            if (el) el.value = ''; 
+        });
+        isConvenientToTalk = null;
+        if(document.getElementById('script-mode-toggle')) document.getElementById('script-mode-toggle').checked = false;
     }
 
     for (let i = 1; i <= 100; i++) {
@@ -1862,19 +1863,28 @@ function openQuickWaitingListModal() {
     const modal = document.getElementById('modal-quick-wl');
     if (!modal) return;
     
-    // Включаем маску "А" для быстрого окна
     setupIdFormatter('quick-wl-id');
     
-    document.getElementById('quick-wl-id').value = '';
-    document.getElementById('quick-wl-comment').value = '';
+    if(document.getElementById('quick-wl-id')) document.getElementById('quick-wl-id').value = '';
+    if(document.getElementById('quick-wl-comment')) document.getElementById('quick-wl-comment').value = '';
+    
     if (document.getElementById('quick-wl-callback')) document.getElementById('quick-wl-callback').value = document.getElementById('script-deliv-date')?.value || '';
     if (document.getElementById('quick-wl-operator')) document.getElementById('quick-wl-operator').value = currentOperatorName;
+    
     modal.style.display = 'flex'; modal.classList.add('open');
+    killBrowserAutocomplete();
 }
 
 function closeQuickWaitingListModal() {
     const modal = document.getElementById('modal-quick-wl');
-    if (modal) { modal.classList.remove('open'); setTimeout(() => modal.style.display = 'none', 200); }
+    if (modal) { 
+        modal.classList.remove('open'); 
+        setTimeout(() => { 
+            modal.style.display = 'none'; 
+            if(document.getElementById('quick-wl-id')) document.getElementById('quick-wl-id').value = '';
+            if(document.getElementById('quick-wl-comment')) document.getElementById('quick-wl-comment').value = '';
+        }, 200); 
+    }
 }
 
 async function saveQuickWaitingListTask() {

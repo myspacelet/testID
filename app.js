@@ -73,8 +73,9 @@ window.addEventListener('DOMContentLoaded', async () => {
                             count: 5,
                             from_bound: { value: "city" },
                             to_bound: { value: "settlement" }
-                        }) 
-                    });
+                        })
+                    }); // <-- Вот тут часто теряется эта скобочка
+                    
                     const result = await response.json();
                     
                     if (result.suggestions && result.suggestions.length > 0) {
@@ -89,7 +90,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                             let displayName = cityName;
                             
                             // Умное добавление региона (области/края)
-                            // Если регион есть, и он не дублирует город, и это не город федерального значения
                             if (data.region_with_type && data.region !== cityName && !["Москва", "Санкт-Петербург", "Севастополь"].includes(cityName)) {
                                 displayName += `, ${data.region_with_type}`;
                             }
@@ -122,7 +122,6 @@ window.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
-    // ===========================================
 
     // Вспомогательная функция для показа полей ввода, если доступ закрыт
     const showLoginUI = () => {

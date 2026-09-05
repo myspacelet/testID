@@ -213,11 +213,11 @@ async function renderOperatorUI() {
     const dateEl = document.getElementById('op-date-display');
     if (dateEl) dateEl.innerText = nowMsk.toLocaleDateString('ru-RU', dateOptions);
 
-    // 2. Вычисляем границу текущей смены (с защитой от полуночи)
+// 2. Вычисляем границу текущей смены (с защитой от полуночи)
     let resetH = 0, resetM = 0;
     if (selectedChannel === 'HL') { resetH = 19; resetM = 30; }
     else if (selectedChannel === 'LIVE') { resetH = 21; resetM = 30; }
-    else if (selectedChannel === 'NIGHT') { resetH = 10; resetM = 0; }
+    else if (selectedChannel === 'NIGHT') { resetH = 10; resetM = 30; }
 
     let shiftStartMsk = new Date(nowMsk);
     shiftStartMsk.setHours(resetH, resetM, 0, 0);
@@ -252,7 +252,7 @@ async function renderOperatorUI() {
     currentConfig.forEach(col => mySelections[col.type] = 0);
 
     try {
-        // 2. Качаем данные из базы (Добавили is_unique)
+        // 2. Качаем данные из базы
         const { data: intervals, error } = await supabaseClient
             .from('intervals_config')
             .select('type, time_slot, is_unique')
@@ -261,20 +261,23 @@ async function renderOperatorUI() {
 
         if (error) throw error;
 
+        // 🛠 ДОБАВИЛИ .gte('created_at', utcShiftStart)
         const { data: activeBookings, error: bookingsError } = await supabaseClient
             .from('active_breaks')
             .select('*')
-            .eq('channel', selectedChannel);
+            .eq('channel', selectedChannel)
+            .gte('created_at', utcShiftStart); 
 
         if (bookingsError) throw bookingsError;
 
-const { data: startLogs, error: logsError } = await supabaseClient
+        // 🛠 ДОБАВИЛИ .gte('created_at', utcShiftStart)
+        const { data: startLogs, error: logsError } = await supabaseClient
             .from('global_log')
             .select('time_slot')
             .eq('channel', selectedChannel)
             .eq('user_id', currentUser.id)
             .eq('action', 'СТАРТ')
-            .gte('created_at', utcShiftStart); 
+            .gte('created_at', utcShiftStart);
             
         const finishedSlots = startLogs ? startLogs.map(l => l.time_slot) : [];
 
@@ -761,17 +764,25 @@ function startIronTimer(tagElement, timeString, isRestore = false) {
         
         overlay.classList.add('hide');
 
-        // Вычисляем МСК начало дня для защиты от старых логов
+        // 🛠 Вычисляем границу ИМЕННО ТЕКУЩЕЙ СМЕНЫ
         const now = new Date();
         const mskOffset = 3 * 60 * 60 * 1000; 
         const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
-        const todayStr = nowMsk.toISOString().split('T')[0];
-        const startOfDayMsk = new Date(`${todayStr}T00:00:00+03:00`).toISOString();
+        
+        let resetH = 0, resetM = 0;
+        if (selectedChannel === 'HL') { resetH = 19; resetM = 30; }
+        else if (selectedChannel === 'LIVE') { resetH = 21; resetM = 30; }
+        else if (selectedChannel === 'NIGHT') { resetH = 10; resetM = 30; } // 🌙 10:30
 
-        // Ищем дубли только за сегодня
+        let shiftStartMsk = new Date(nowMsk);
+        shiftStartMsk.setHours(resetH, resetM, 0, 0);
+        if (nowMsk < shiftStartMsk) shiftStartMsk.setDate(shiftStartMsk.getDate() - 1);
+        const utcShiftStart = new Date(shiftStartMsk.getTime() - mskOffset).toISOString();
+
+        // Ищем дубли ТОЛЬКО в текущей смене
         const { data } = await supabaseClient.from('global_log')
             .select('id').eq('user_id', currentUser.id).eq('time_slot', timeString)
-            .eq('action', 'ЗАВЕРШЕН').gte('created_at', startOfDayMsk);
+            .eq('action', 'ЗАВЕРШЕН').gte('created_at', utcShiftStart);
         
         if (!data || data.length === 0) {
             await supabaseClient.from('global_log').insert([{
@@ -872,17 +883,11 @@ async function loadAdminMonitor(channel) {
     listContainer.innerHTML = '<div style="padding:30px; text-align:center; color: var(--text-muted);">⏳ Синхронизация...</div>';
 
     try {
-        // 1. Получаем все активные брони для канала
-        const { data: activeBookings, error: err1 } = await supabaseClient
-            .from('active_breaks')
-            .select('*')
-            .eq('channel', channel);
-
-        // 🕰 УМНЫЙ РАСЧЕТ ГРАНИЦЫ СМЕНЫ (Убиваем баг полуночи для NIGHT)
+        // 🕰 УМНЫЙ РАСЧЕТ ГРАНИЦЫ СМЕНЫ СТАВИМ В САМОЕ НАЧАЛО
         let resetH = 0, resetM = 0;
         if (channel === 'HL') { resetH = 19; resetM = 30; }
         else if (channel === 'LIVE') { resetH = 21; resetM = 30; }
-        else if (channel === 'NIGHT') { resetH = 10; resetM = 0; }
+        else if (channel === 'NIGHT') { resetH = 10; resetM = 30; } // 🌙 10:30
 
         const now = new Date();
         const mskOffset = 3 * 60 * 60 * 1000; 
@@ -891,10 +896,26 @@ async function loadAdminMonitor(channel) {
         let shiftStartMsk = new Date(nowMsk);
         shiftStartMsk.setHours(resetH, resetM, 0, 0);
 
-        // Если сейчас время ДО сброса, значит эта смена началась ВЧЕРА
         if (nowMsk < shiftStartMsk) {
             shiftStartMsk.setDate(shiftStartMsk.getDate() - 1);
         }
+        const utcShiftStart = new Date(shiftStartMsk.getTime() - mskOffset).toISOString();
+
+        // 1. Получаем все активные брони ТОЛЬКО за текущую смену
+        const { data: activeBookings, error: err1 } = await supabaseClient
+            .from('active_breaks')
+            .select('*')
+            .eq('channel', channel)
+            .gte('created_at', utcShiftStart); // 🛠 ДОБАВИЛИ ФИЛЬТР
+
+        // 2. Получаем логи ТОЛЬКО за текущую смену
+        const { data: actionLogs, error: err2 } = await supabaseClient
+            .from('global_log')
+            .select('*')
+            .eq('channel', channel)
+            .gte('created_at', utcShiftStart) 
+            .in('action', ['СТАРТ', 'ЗАВЕРШЕН'])
+            .order('created_at', { ascending: true });
 
         // Переводим границу смены обратно в UTC для запроса в БД
         const utcShiftStart = new Date(shiftStartMsk.getTime() - mskOffset).toISOString();

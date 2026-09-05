@@ -993,7 +993,7 @@ async function findNearestStore() {
         }
 
         if (nearestCity) {
-            const roadDistance = Math.round(minDistance * 1.3);
+            const roadDistance = Math.round(minDistance * 1.4);
             let clientTz = parseInt(clientCoords.tz, 10);
             if (isNaN(clientTz)) clientTz = 3; 
 

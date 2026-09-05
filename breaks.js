@@ -1484,13 +1484,20 @@ let currentLogsData = []; // Сохраняем логи в памяти для 
 function openLogsModal() {
     document.getElementById('modal-logs').classList.add('open');
     
-    // Чтобы не перегружать сервер, по умолчанию ставим СЕГОДНЯШНЮЮ дату
     const now = new Date();
     const mskOffset = 3 * 60 * 60 * 1000;
     const nowMsk = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + mskOffset);
+    
+    // Формируем сегодняшнюю дату (По дату)
     const todayStr = nowMsk.toISOString().split('T')[0];
     
-    document.getElementById('log-date-start').value = todayStr;
+    // Формируем 1-е число текущего месяца (С даты)
+    const year = nowMsk.getFullYear();
+    const month = String(nowMsk.getMonth() + 1).padStart(2, '0'); // Месяцы начинаются с 0, поэтому +1
+    const firstDayStr = `${year}-${month}-01`;
+    
+    // Подставляем значения в поля
+    document.getElementById('log-date-start').value = firstDayStr;
     document.getElementById('log-date-end').value = todayStr;
     document.getElementById('log-search-input').value = '';
     
